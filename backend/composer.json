@@ -1,0 +1,23 @@
+{
+  "name": "banik-libusin/mvr-backend",
+  "description": "Match Video Review – REST API",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.4",
+    "ext-pdo": "*",
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-fileinfo": "*",
+    "vlucas/phpdotenv": "^5.8"
+  },
+  "suggest": {
+    "ext-ftp": "Upload videí na FTP úložiště"
+  },
+  "autoload": {
+    "psr-4": { "Mvr\\": "src/" }
+  },
+  "scripts": {
+    "serve": "php -S localhost:8080 -t public"
+  }
+}

@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Serve existing files or directories directly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Redirect everything else to Front Controller
+    RewriteRule ^ index.php [QSA,L]
+
+    # Apache strips Authorization by default
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>

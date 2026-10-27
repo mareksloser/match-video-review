@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 240 243 247;
+  --panel: 255 255 255;
+  --raised: 233 238 244;
+  --line: 214 221 230;
+  --ink: 16 24 36;
+  --muted: 88 101 120;
+  --pitch: 18 140 84;
+  --pitch-ink: 255 255 255;
+  --chalk: 11 17 27;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: 12 18 29;
+    --panel: 19 27 40;
+    --raised: 27 37 53;
+    --line: 39 51 70;
+    --ink: 229 235 242;
+    --muted: 139 151 169;
+    --pitch: 31 191 117;
+    --pitch-ink: 5 28 16;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: 12 18 29;
+  --panel: 19 27 40;
+  --raised: 27 37 53;
+  --line: 39 51 70;
+  --ink: 229 235 242;
+  --muted: 139 151 169;
+  --pitch: 31 191 117;
+  --pitch-ink: 5 28 16;
+  color-scheme: dark;
+}
+
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+html, body, #root {
+  min-height: 100%;
+}
+body {
+  @apply bg-bg font-sans text-ink antialiased;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
