@@ -17,6 +17,7 @@ return static fn (Router $r): Router => $r
     ->add('GET', '/matches', [MatchController::class, 'index'])
     ->add('POST', '/matches', [MatchController::class, 'store'])
     ->add('GET', '/matches/{id}', [MatchController::class, 'show'])
+    ->add('PUT', '/matches/{id}', [MatchController::class, 'update'])
     ->add('DELETE', '/matches/{id}', [MatchController::class, 'destroy'])
     ->add('GET', '/matches/{id}/analytics', [MatchController::class, 'analytics'])
 
@@ -30,5 +31,7 @@ return static fn (Router $r): Router => $r
 
     ->add('GET', '/rules', [RuleController::class, 'index'])
     ->add('POST', '/rules', [RuleController::class, 'store'])
+    ->add('PUT', '/rules/{id}', [RuleController::class, 'update'])
+    ->add('DELETE', '/rules/{id}', [RuleController::class, 'destroy'])
 
     ->add('POST', '/uploads', [UploadController::class, 'store']);

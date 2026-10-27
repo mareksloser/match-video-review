@@ -59,6 +59,27 @@ final class MatchService
     public function create(?User $viewer, array $input): array
     {
         $this->policy->requireAdmin($viewer);
+        $id = $this->matches->create($this->validated($input));
+        return $this->get($viewer, $id);
+    }
+
+    /**
+     * Fixes a wrong URL, team, date… Markers stay attached; their times are not shifted.
+     *
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    public function update(?User $viewer, int $id, array $input): array
+    {
+        $admin = $this->policy->requireAdmin($viewer);
+        $this->visibleMatch($admin, $id);
+        $this->matches->update($id, $this->validated($input));
+        return $this->get($viewer, $id);
+    }
+
+    /** @param array<string, mixed> $input */
+    private function validated(array $input): MatchData
+    {
         $data = MatchData::fromArray($input);
         if (!$this->categories->exists($data->teamCategoryId)) {
             throw HttpException::validation(['teamCategoryId' => 'Tým neexistuje.']);
@@ -68,8 +89,7 @@ final class MatchService
         } catch (\InvalidArgumentException $e) {
             throw HttpException::validation(['videoUrl' => $e->getMessage()]);
         }
-        $id = $this->matches->create($data->withVideo($video->type, $video->url));
-        return $this->get($viewer, $id);
+        return $data->withVideo($video->type, $video->url);
     }
 
     public function delete(?User $viewer, int $id): void

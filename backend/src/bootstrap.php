@@ -17,4 +17,7 @@ if (is_file($composer)) {
     });
 }
 
-\Mvr\Support\Env::load(__DIR__ . '/../.env');
+// Environment: .env is loaded here so that public/index.php and bin/* scripts behave the same.
+if (class_exists(\Dotenv\Dotenv::class)) {
+    \Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+}

@@ -21,6 +21,7 @@ cd backend
 cp .env.example .env            # vyplňte DB_*, APP_SECRET (min. 16 znaků)
 php bin/create-user.php "Petr Hájek" trener@banik.cz heslo admin
 php bin/create-user.php "Jakub Svoboda" hrac@banik.cz heslo player 1   # 1 = id kategorie A-tým
+php bin/create-user.php "Náhled" view@banik.cz heslo viewer            # vidí všechny týmy, nic nemění
 php -S localhost:8080 -t public
 
 # 3) frontend (druhý terminál) — Vite proxuje /api na :8080

@@ -14,4 +14,9 @@ interface RuleRepository
     public function exists(int $id): bool;
 
     public function create(Rule $rule): int;
+
+    public function update(Rule $rule): void;
+
+    /** Markers keep existing; their rule_id becomes NULL (FK ON DELETE SET NULL). */
+    public function delete(int $id): void;
 }

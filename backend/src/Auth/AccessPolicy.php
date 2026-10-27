@@ -10,7 +10,8 @@ use Mvr\Http\HttpException;
 
 /**
  * All visibility rules in one pure class:
- * anonymous → public matches, no markers; player → own team + public; admin → everything.
+ * anonymous → public matches, no markers; player → own team + public;
+ * viewer → everything, read-only; admin → everything.
  */
 final class AccessPolicy
 {
@@ -19,12 +20,12 @@ final class AccessPolicy
         if ($user === null) {
             return $match->isPublic;
         }
-        return $user->isAdmin() || $match->isPublic || $match->teamCategoryId === $user->teamCategoryId;
+        return $user->seesAllTeams() || $match->isPublic || $match->teamCategoryId === $user->teamCategoryId;
     }
 
     public function canViewMarkers(?User $user, MatchVideo $match): bool
     {
-        return $user !== null && ($user->isAdmin() || $match->teamCategoryId === $user->teamCategoryId);
+        return $user !== null && ($user->seesAllTeams() || $match->teamCategoryId === $user->teamCategoryId);
     }
 
     public function requireUser(?User $user): User

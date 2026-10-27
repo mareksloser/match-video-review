@@ -3,7 +3,7 @@ import { ApiError } from './client';
 import { createSeed, type DemoDb } from './demoSeed';
 import type { Marker, User } from '@/lib/types';
 
-const STORAGE_KEY = 'mvr-demo-v1';
+const STORAGE_KEY = 'mvr-demo-v3';
 
 export interface DemoStorage {
   load(): DemoDb | null;
@@ -62,12 +62,12 @@ export class DemoApiClient implements ApiClient {
   private canSeeMatch(m: DemoDb['matches'][number]) {
     const u = this.user;
     if (!u) return m.isPublic;
-    if (u.role === 'admin') return true;
+    if (u.role === 'admin' || u.role === 'viewer') return true;
     return m.isPublic || m.teamCategoryId === u.teamCategoryId;
   }
   private canSeeMarkers(m: DemoDb['matches'][number]) {
     const u = this.user;
-    return !!u && (u.role === 'admin' || m.teamCategoryId === u.teamCategoryId);
+    return !!u && (u.role === 'admin' || u.role === 'viewer' || m.teamCategoryId === u.teamCategoryId);
   }
   private nextId() {
     return ++this.db.seq;
@@ -137,6 +137,15 @@ export class DemoApiClient implements ApiClient {
     this.db.matches.push(m);
     this.persist();
     return { ...m, markerCount: 0, reviewedCount: 0 };
+  }
+
+  async updateMatch(id: number, input: Parameters<ApiClient['updateMatch']>[1]) {
+    this.requireAdmin();
+    const m = this.db.matches.find((x) => x.id === id);
+    if (!m) throw new ApiError('Zápas neexistuje.', 404);
+    Object.assign(m, input);
+    this.persist();
+    return this.match(id);
   }
 
   async deleteMatch(id: number) {
@@ -209,6 +218,25 @@ export class DemoApiClient implements ApiClient {
     this.db.rules.push(r);
     this.persist();
     return r;
+  }
+
+  async updateRule(id: number, input: Parameters<ApiClient['updateRule']>[1]) {
+    this.requireAdmin();
+    const r = this.db.rules.find((x) => x.id === id);
+    if (!r) throw new ApiError('Zásada neexistuje.', 404);
+    Object.assign(r, input);
+    this.persist();
+    return r;
+  }
+
+  async deleteRule(id: number) {
+    this.requireAdmin();
+    this.db.rules = this.db.rules.filter((r) => r.id !== id);
+    // Same as the database FK (ON DELETE SET NULL): markers stay, the link disappears.
+    this.db.markers.forEach((m) => {
+      if (m.ruleId === id) m.ruleId = null;
+    });
+    this.persist();
   }
 
   async analytics(matchId: number) {

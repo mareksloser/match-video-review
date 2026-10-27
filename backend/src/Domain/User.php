@@ -21,6 +21,12 @@ final class User
         return $this->role === Role::Admin;
     }
 
+    /** Admins and viewers see every team; only admins may change anything. */
+    public function seesAllTeams(): bool
+    {
+        return $this->role === Role::Admin || $this->role === Role::Viewer;
+    }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {

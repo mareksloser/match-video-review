@@ -15,6 +15,7 @@ export interface ApiClient {
   matches(filter?: { categoryId?: number | null }): Promise<Match[]>;
   match(id: number): Promise<Match>;
   createMatch(input: MatchInput): Promise<Match>;
+  updateMatch(id: number, input: MatchInput): Promise<Match>;
   deleteMatch(id: number): Promise<void>;
 
   markers(matchId: number): Promise<Marker[]>;
@@ -27,6 +28,8 @@ export interface ApiClient {
 
   rules(): Promise<Rule[]>;
   createRule(input: Omit<Rule, 'id'>): Promise<Rule>;
+  updateRule(id: number, input: Omit<Rule, 'id'>): Promise<Rule>;
+  deleteRule(id: number): Promise<void>;
 
   analytics(matchId: number): Promise<MatchAnalytics>;
 

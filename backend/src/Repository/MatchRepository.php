@@ -24,5 +24,7 @@ interface MatchRepository
 
     public function create(MatchData $data): int;
 
+    public function update(int $id, MatchData $data): void;
+
     public function delete(int $id): void;
 }

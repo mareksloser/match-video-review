@@ -30,6 +30,11 @@ final class Rule
         return $rule;
     }
 
+    public function withId(int $id): self
+    {
+        return new self($id, $this->code, $this->area, $this->title, $this->body);
+    }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {

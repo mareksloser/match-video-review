@@ -31,4 +31,15 @@ final class PdoRuleRepository implements RuleRepository
             ->execute([$rule->code, $rule->area, $rule->title, $rule->body]);
         return (int) $this->pdo->lastInsertId();
     }
+
+    public function update(Rule $rule): void
+    {
+        $this->pdo->prepare('UPDATE rules SET code = ?, area = ?, title = ?, body = ? WHERE id = ?')
+            ->execute([$rule->code, $rule->area, $rule->title, $rule->body, $rule->id]);
+    }
+
+    public function delete(int $id): void
+    {
+        $this->pdo->prepare('DELETE FROM rules WHERE id = ?')->execute([$id]);
+    }
 }

@@ -64,6 +64,13 @@ final class PdoMatchRepository implements MatchRepository
         return (int) $this->pdo->lastInsertId();
     }
 
+    public function update(int $id, MatchData $d): void
+    {
+        $this->pdo->prepare(
+            'UPDATE matches SET title = ?, match_date = ?, team_category_id = ?, video_type = ?, video_url = ?, is_public = ? WHERE id = ?'
+        )->execute([$d->title, $d->matchDate, $d->teamCategoryId, $d->videoType, $d->videoUrl, (int) $d->isPublic, $id]);
+    }
+
     public function delete(int $id): void
     {
         $this->pdo->prepare('DELETE FROM matches WHERE id = ?')->execute([$id]);

@@ -2,6 +2,7 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, create
 import { Layout } from './Layout';
 import { GalleryPage } from '@/features/gallery/GalleryPage';
 import { NewMatchPage } from '@/features/gallery/NewMatchPage';
+import { EditMatchPage } from '@/features/gallery/EditMatchPage';
 import { MatchReviewPage } from '@/features/match/MatchReviewPage';
 import { PlaybookPage } from '@/features/playbook/PlaybookPage';
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
@@ -14,6 +15,7 @@ const routes = [
   createRoute({ getParentRoute: () => root, path: '/', component: GalleryPage }),
   createRoute({ getParentRoute: () => root, path: '/new', component: NewMatchPage }),
   createRoute({ getParentRoute: () => root, path: '/match/$matchId', component: MatchReviewPage }),
+  createRoute({ getParentRoute: () => root, path: '/match/$matchId/edit', component: EditMatchPage }),
   createRoute({ getParentRoute: () => root, path: '/playbook', component: PlaybookPage }),
   createRoute({ getParentRoute: () => root, path: '/analytics', component: AnalyticsPage }),
   createRoute({ getParentRoute: () => root, path: '/login', component: LoginPage }),

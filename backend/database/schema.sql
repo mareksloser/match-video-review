@@ -20,7 +20,7 @@ CREATE TABLE `users` (
   `name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(150) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
-  `role` ENUM('admin', 'player') NOT NULL DEFAULT 'player',
+  `role` ENUM('admin', 'player', 'viewer') NOT NULL DEFAULT 'player' COMMENT '▲ viewer = read-only, all teams',
   `team_category_id` BIGINT UNSIGNED NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`team_category_id`) REFERENCES `team_categories`(`id`) ON DELETE SET NULL
@@ -53,7 +53,7 @@ CREATE TABLE `markers` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `match_id` BIGINT UNSIGNED NOT NULL,
   `timestamp_seconds` INT UNSIGNED NOT NULL COMMENT 'Čas ve vteřinách od začátku videa',
-  `kind` VARCHAR(20) NOT NULL DEFAULT 'tactic' COMMENT '▲ tactic | goal | chance | foul | substitution',
+  `kind` VARCHAR(20) NOT NULL DEFAULT 'tactic' COMMENT '▲ praise | mistake | improvement | tactic | goal | chance | set_piece | foul | substitution',
   `title` VARCHAR(255) NOT NULL COMMENT 'Krátký název situace',
   `description` TEXT NULL COMMENT 'Detailní rozbor / doporučení od trenéra',
   `rule_id` BIGINT UNSIGNED NULL COMMENT '▲ Odkaz do playbooku',

@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-// Usage: php bin/create-user.php "Jméno" email@example.cz heslo admin|player [team_category_id]
+// Usage: php bin/create-user.php "Jméno" email@example.cz heslo admin|player|viewer [team_category_id]
+// Running it again for an existing e-mail updates the user (e.g. to change the password).
 
 use Mvr\Support\Container;
 
 require __DIR__ . '/../src/bootstrap.php';
 
 [$_, $name, $email, $password, $role] = $argv + [null, null, null, null, 'player'];
-if (!$name || !$email || !$password || !in_array($role, ['admin', 'player'], true)) {
-    fwrite(STDERR, "Usage: php bin/create-user.php \"Jméno\" email heslo admin|player [team_category_id]\n");
+if (!$name || !$email || !$password || !in_array($role, ['admin', 'player', 'viewer'], true)) {
+    fwrite(STDERR, "Usage: php bin/create-user.php \"Jméno\" email heslo admin|player|viewer [team_category_id]\n");
     exit(1);
 }
 $c = new Container();

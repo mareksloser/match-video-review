@@ -111,6 +111,53 @@ export function useCreateMatch() {
   });
 }
 
+export function useUpdateMatch(id: number) {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ file, ...input }: MatchInput & { file?: File | null }) =>
+      api.updateMatch(id, file ? { ...input, videoType: 'ftp', videoUrl: (await api.uploadVideo(file)).url } : input),
+    onSuccess: (m) => {
+      qc.setQueryData(keys.match(id), m);
+      void qc.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+}
+
+export function useDeleteMatch() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteMatch(id),
+    onSuccess: (_r, id) => {
+      qc.removeQueries({ queryKey: keys.match(id) });
+      qc.removeQueries({ queryKey: keys.markers(id) });
+      void qc.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+}
+
+export function useUpdateRule() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: Omit<Rule, 'id'> }) => api.updateRule(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.rules }),
+  });
+}
+
+export function useDeleteRule() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteRule(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.rules });
+      void qc.invalidateQueries({ queryKey: ['markers'] }); // markers lose the deleted rule
+    },
+  });
+}
+
 export function useCreateRule() {
   const api = useApi();
   const qc = useQueryClient();

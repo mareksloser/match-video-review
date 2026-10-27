@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus } from 'lucide-react';
 import { useCategories, useMarkerMutations, useMarkers, useMatch, useMe, useRules } from '@/app/queries';
 import { Button, ErrorNote, Panel, Spinner } from '@/components/ui';
 import { useVideoEngine } from '@/video/usePlayback';
 import { useDrawingEditor } from '@/canvas/useDrawingEditor';
 import { activeMarkerIndex, formatTime } from '@/lib/time';
 import { formatDate } from '@/lib/labels';
-import type { Marker, MarkerInput, Match, Rule, User } from '@/lib/types';
+import type { Marker, MarkerInput, MarkerKind, Match, Rule, User } from '@/lib/types';
 import { VideoStage } from './VideoStage';
 import { PlayerControls } from './PlayerControls';
 import { MarkerTimeline } from './MarkerTimeline';
@@ -15,6 +15,7 @@ import { MarkerList } from './MarkerList';
 import { MarkerDetail } from './MarkerDetail';
 import { MarkerForm } from './MarkerForm';
 import { DrawingToolbar } from './DrawingToolbar';
+import { KindFilter } from './KindFilter';
 
 export function MatchReviewPage() {
   const { matchId } = useParams({ strict: false }) as { matchId: string };
@@ -46,6 +47,7 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
   const [mode, setMode] = useState<Mode>({ kind: 'view' });
   const [overlayOn, setOverlayOn] = useState(true);
   const [autoStop, setAutoStop] = useState(false);
+  const [kindFilter, setKindFilter] = useState<MarkerKind | null>(null);
 
   const selected = markers.find((m) => m.id === selectedId) ?? null;
   const lastMarker = markers.at(-1)?.timestampSeconds ?? 0;
@@ -150,15 +152,24 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
             {category && <>, {category}</>}
           </p>
         </div>
-        {me && markers.length > 0 && (
-          <p className="text-sm text-muted">
-            {isAdmin ? (
-              <>Probráno s týmem <span className="tabular font-medium text-ink">{reviewed} z {markers.length}</span></>
-            ) : (
-              <>Zhlédnuto <span className="tabular font-medium text-ink">{markers.filter((m) => m.viewedByMe).length} z {markers.length}</span></>
-            )}
-          </p>
-        )}
+        <div className="flex items-center gap-4">
+          {me && markers.length > 0 && (
+            <p className="text-sm text-muted">
+              {isAdmin ? (
+                <>Probráno s týmem <span className="tabular font-medium text-ink">{reviewed} z {markers.length}</span></>
+              ) : (
+                <>Zhlédnuto <span className="tabular font-medium text-ink">{markers.filter((m) => m.viewedByMe).length} z {markers.length}</span></>
+              )}
+            </p>
+          )}
+          {isAdmin && (
+            <Link to="/match/$matchId/edit" params={{ matchId: String(match.id) }}>
+              <Button size="sm">
+                <Pencil className="h-4 w-4" /> Upravit zápas
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -212,9 +223,10 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
                   </Button>
                 )}
               </div>
+              <KindFilter markers={markers} value={kindFilter} onChange={setKindFilter} />
               <div className="max-h-[440px] overflow-y-auto">
                 <MarkerList
-                  markers={markers}
+                  markers={kindFilter ? markers.filter((m) => m.kind === kindFilter) : markers}
                   rules={rules}
                   selectedId={selectedId}
                   activeId={active?.id ?? null}

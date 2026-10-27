@@ -43,6 +43,7 @@ export function LoginPage() {
           <p className="text-center text-sm text-muted">Ukázkové účty</p>
           <Button onClick={() => signIn('trener@banik.cz', 'demo')}>Přihlásit jako trenér</Button>
           <Button onClick={() => signIn('hrac@banik.cz', 'demo')}>Přihlásit jako hráč A-týmu</Button>
+          <Button onClick={() => signIn('view@banik.cz', 'demo')}>Přihlásit jako náhled (vše, jen ke čtení)</Button>
         </div>
       )}
     </div>

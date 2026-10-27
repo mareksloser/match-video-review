@@ -53,7 +53,7 @@ return static function (Container $c): void {
 
     // Auth
     $c->set(TokenService::class, fn (Container $c) => new TokenService(
-        Env::get('APP_SECRET', '') ?? '',
+        Env::get('APP_SECRET'),
         $c->get(Clock::class),
         (int) Env::get('TOKEN_TTL', '1209600'),
     ));
@@ -108,7 +108,7 @@ return static function (Container $c): void {
     $c->set(Router::class, fn (Container $c) => (require __DIR__ . '/routes.php')(new Router($c)));
     $c->set(Kernel::class, fn (Container $c) => new Kernel(
         $c->get(Router::class),
-        array_values(array_filter(array_map('trim', explode(',', Env::get('CORS_ORIGINS', '') ?? '')))),
-        Env::get('APP_DEBUG') === '1',
+        Env::list('CORS_ORIGINS'),
+        Env::bool('APP_DEBUG'),
     ));
 };

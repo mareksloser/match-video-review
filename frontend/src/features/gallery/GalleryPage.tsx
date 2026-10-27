@@ -24,7 +24,9 @@ export function GalleryPage() {
             {me
               ? me.role === 'admin'
                 ? 'Všechny zápasy klubu. Otevřete zápas a přidejte k situacím markery a kresby.'
-                : 'Zápasy vašeho týmu a veřejné sestřihy. Projděte si situace, které trenér označil.'
+                : me.role === 'viewer'
+                  ? 'Všechny zápasy klubu včetně rozborů trenérů.'
+                  : 'Zápasy vašeho týmu a veřejné sestřihy. Projděte si situace, které trenér označil.'
               : 'Veřejné sestřihy a rozbory. Týmové poznámky trenérů vidí hráči po přihlášení.'}
           </p>
         </div>

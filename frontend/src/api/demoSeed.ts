@@ -40,6 +40,7 @@ export function createSeed(): DemoDb {
     { id: 4, name: 'Ondřej Král', email: 'ondrej@banik.cz', password: 'demo', role: 'player', teamCategoryId: 1 },
     { id: 5, name: 'Lukáš Beneš', email: 'lukas@banik.cz', password: 'demo', role: 'player', teamCategoryId: 1 },
     { id: 6, name: 'Matěj Procházka', email: 'matej@banik.cz', password: 'demo', role: 'player', teamCategoryId: 1 },
+    { id: 7, name: 'Náhled', email: 'view@banik.cz', password: 'demo', role: 'viewer', teamCategoryId: null },
   ];
   const rules: Rule[] = [
     { id: 1, code: '#1', area: 'Rozehrávka', title: 'Rozehrávka od brankáře', body: 'Stopeři se rozestoupí k vápnu, šestka si naběhne mezi ně. První přihrávka jde na volného stopera, ne dlouhým míčem.' },
@@ -73,7 +74,7 @@ export function createSeed(): DemoDb {
       ]),
     },
     {
-      ...base, id: 2, matchId: 1, timestampSeconds: T(14, 20), kind: 'tactic', title: 'Obranný zlom – pozdní přesun stoperů', ruleId: 4,
+      ...base, id: 2, matchId: 1, timestampSeconds: T(14, 20), kind: 'mistake', title: 'Obranný zlom – pozdní přesun stoperů', ruleId: 4,
       description: 'Míč jde na kraj a levý stoper zůstává ve středu. Mezera mezi ním a krajním obráncem je přes 20 m, soupeř do ní nabíhá.',
       reviewed: true, reviewedAt: '2026-10-25T17:42:00Z',
       drawing: drawingFor(T(14, 20), (t) => [
@@ -95,7 +96,7 @@ export function createSeed(): DemoDb {
       ]),
     },
     {
-      ...base, id: 5, matchId: 1, timestampSeconds: T(32, 45), kind: 'tactic', title: 'Neúspěšný vysoký presink', ruleId: 3,
+      ...base, id: 5, matchId: 1, timestampSeconds: T(32, 45), kind: 'mistake', title: 'Neúspěšný vysoký presink', ruleId: 3,
       description: 'Soupeři odskočil míč, ale napadli jsme až na druhý dotek. Druhý hráč nezavřel přihrávku do středu.',
       drawing: drawingFor(T(32, 45), (t) => [
         { type: 'arrow', from: at(t, ['own', 9]), to: at(t, 'ball'), color: 'yellow', dashed: false },
@@ -105,8 +106,16 @@ export function createSeed(): DemoDb {
         { type: 'text', at: offset(at(t, 'ball'), 0.04, -0.07), text: 'Zavřít střed', color: 'white' },
       ]),
     },
+    {
+      ...base, id: 10, matchId: 1, timestampSeconds: T(27, 30), kind: 'praise', title: 'Obětavý návrat krajního záložníka',
+      description: 'Po ztrátě míče sprint zpátky přes půl hřiště a zavřená střela. Přesně tohle chceme vidět u každého.',
+    },
+    {
+      ...base, id: 11, matchId: 1, timestampSeconds: T(35, 5), kind: 'improvement', title: 'Lepší řešení: hrát na volného krajního', ruleId: 6,
+      description: 'Místo kličky do dvou hráčů stačila přihrávka na volného krajního obránce, který naběhl do prostoru.',
+    },
     { ...base, id: 6, matchId: 1, timestampSeconds: T(38, 10), kind: 'substitution', title: 'Střídání a přechod na 4-4-2', description: 'Po střídání držíme dvě čtyřčlenné řady, hrotový útočník napadá stopery.' },
-    { ...base, id: 7, matchId: 1, timestampSeconds: T(41, 51), kind: 'chance', title: 'Šance po rohovém kopu soupeře', ruleId: 5, ruleLink: 'https://www.thefa.com/football-rules-governance/lawsandrules', description: 'Po odvrácení vystoupil jen jeden hráč, ostatní zůstali v šestnáctce a dorážka šla do volného prostoru.' },
+    { ...base, id: 7, matchId: 1, timestampSeconds: T(41, 51), kind: 'set_piece', title: 'Šance po rohovém kopu soupeře', ruleId: 5, ruleLink: 'https://www.thefa.com/football-rules-governance/lawsandrules', description: 'Po odvrácení vystoupil jen jeden hráč, ostatní zůstali v šestnáctce a dorážka šla do volného prostoru.' },
 
     { ...base, id: 8, matchId: 2, timestampSeconds: T(12, 30), kind: 'tactic', title: 'Vysoký blok soupeře při rozehrávce', ruleId: 1, description: 'Soupeř napadá třemi hráči. Řešení: brankář hraje na šestku, která couvá mezi stopery.' },
     { ...base, id: 9, matchId: 2, timestampSeconds: T(41, 51), kind: 'goal', title: 'Inkasovaný gól po ztrátě ve středu', ruleId: 2, description: 'Oba krajní obránci byli vysoko, za míčem zůstal jen jeden stoper.' },

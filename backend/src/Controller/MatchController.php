@@ -44,6 +44,11 @@ final class MatchController
         return Response::json($this->matches->create($this->auth->user($request), $request->json()), 201);
     }
 
+    public function update(Request $request): Response
+    {
+        return Response::json($this->matches->update($this->auth->user($request), $request->intParam('id'), $request->json()));
+    }
+
     public function destroy(Request $request): Response
     {
         $this->matches->delete($this->auth->user($request), $request->intParam('id'));

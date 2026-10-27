@@ -1,7 +1,8 @@
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { BookOpen, ChartColumn, Film, LogIn, LogOut } from 'lucide-react';
+import { Link, Outlet } from '@tanstack/react-router';
+import { BookOpen, ChartColumn, Film, LogIn } from 'lucide-react';
 import { Crest } from '@/components/Crest';
-import { useLogout, useMe } from './queries';
+import { useMe } from './queries';
+import { UserMenu } from './UserMenu';
 import { isDemo } from '@/api';
 import { cn } from '@/lib/cn';
 
@@ -10,8 +11,6 @@ const navLink =
 
 export function Layout() {
   const { data: me } = useMe();
-  const logout = useLogout();
-  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen">
@@ -19,18 +18,6 @@ export function Layout() {
         <Link to="/" aria-label="Galerie zápasů">
           <Crest className="h-12 w-11" />
         </Link>
-        <div className="mt-auto">
-          {me && (
-            <button
-              onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: '/' }) })}
-              className="rounded-md p-2 text-muted hover:bg-raised hover:text-ink"
-              aria-label="Odhlásit se"
-              title="Odhlásit se"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          )}
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -55,22 +42,7 @@ export function Layout() {
               )}
             </nav>
             {me ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden text-right leading-tight sm:block">
-                  <div className="text-sm font-medium">{me.name}</div>
-                  <div className="text-xs text-muted">{me.role === 'admin' ? 'Trenér' : 'Hráč'}</div>
-                </div>
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-raised font-display text-base font-semibold">
-                  {me.name.split(' ').map((p) => p[0]).join('')}
-                </div>
-                <button
-                  onClick={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: '/' }) })}
-                  className="rounded-md p-2 text-muted hover:bg-raised hover:text-ink md:hidden"
-                  aria-label="Odhlásit se"
-                >
-                  <LogOut className="h-5 w-5" />
-                </button>
-              </div>
+              <UserMenu user={me} />
             ) : (
               <Link to="/login" className={cn(navLink, 'text-ink')}>
                 <LogIn className="h-4 w-4" /> Přihlásit

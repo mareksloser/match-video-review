@@ -73,6 +73,7 @@ export class HttpApiClient implements ApiClient {
     this.request('GET', `/matches${f?.categoryId ? `?category=${f.categoryId}` : ''}`);
   match: ApiClient['match'] = (id) => this.request('GET', `/matches/${id}`);
   createMatch: ApiClient['createMatch'] = (input) => this.request('POST', '/matches', input);
+  updateMatch: ApiClient['updateMatch'] = (id, input) => this.request('PUT', `/matches/${id}`, input);
   deleteMatch = (id: number) => this.request<void>('DELETE', `/matches/${id}`);
 
   markers: ApiClient['markers'] = (matchId) => this.request('GET', `/matches/${matchId}/markers`);
@@ -85,6 +86,8 @@ export class HttpApiClient implements ApiClient {
 
   rules: ApiClient['rules'] = () => this.request('GET', '/rules');
   createRule: ApiClient['createRule'] = (input) => this.request('POST', '/rules', input);
+  updateRule: ApiClient['updateRule'] = (id, input) => this.request('PUT', `/rules/${id}`, input);
+  deleteRule = (id: number) => this.request<void>('DELETE', `/rules/${id}`);
 
   async uploadVideo(file: File) {
     const token = this.tokens.get();

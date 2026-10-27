@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'player';
+export type Role = 'admin' | 'player' | 'viewer';
 
 export interface User {
   id: number;
@@ -30,7 +30,16 @@ export interface Match {
   viewedCount?: number; // only for logged-in players
 }
 
-export type MarkerKind = 'tactic' | 'goal' | 'chance' | 'foul' | 'substitution';
+export type MarkerKind =
+  | 'praise'
+  | 'mistake'
+  | 'improvement'
+  | 'tactic'
+  | 'goal'
+  | 'chance'
+  | 'set_piece'
+  | 'foul'
+  | 'substitution';
 
 export interface Marker {
   id: number;

@@ -11,10 +11,6 @@ require __DIR__ . '/../src/bootstrap.php';
 
 $rootDir = dirname(__DIR__);
 
-// --- ENV ---
-$dotenv = Dotenv\Dotenv::createImmutable($rootDir);
-$dotenv->safeLoad();
-
 // --- ERROR HANDLING ---
 $debug = Env::bool('APP_DEBUG');
 ini_set('log_errors', '1');
