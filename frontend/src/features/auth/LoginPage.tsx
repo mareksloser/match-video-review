@@ -16,7 +16,7 @@ export function LoginPage() {
   return (
     <div className="mx-auto mt-6 max-w-sm">
       <div className="flex flex-col items-center text-center">
-        <Crest className="h-16 w-14" />
+        <Crest className="h-24 w-20" />
         <h1 className="mt-3 font-display text-3xl font-semibold">Přihlášení</h1>
         <p className="mt-1 text-muted">Pro hráče a trenéry SK Baník Libušín.</p>
       </div>

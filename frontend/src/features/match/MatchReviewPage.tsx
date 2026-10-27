@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
-import { ArrowLeft, Pencil, Plus } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus, Presentation } from 'lucide-react';
 import { useCategories, useMarkerMutations, useMarkers, useMatch, useMe, useRules } from '@/app/queries';
 import { Button, ErrorNote, Panel, Spinner } from '@/components/ui';
 import { useVideoEngine } from '@/video/usePlayback';
@@ -161,6 +161,13 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
                 <>Zhlédnuto <span className="tabular font-medium text-ink">{markers.filter((m) => m.viewedByMe).length} z {markers.length}</span></>
               )}
             </p>
+          )}
+          {me && markers.length > 0 && engine.capabilities.inlinePlayback && (
+            <Link to="/match/$matchId/present" params={{ matchId: String(match.id) }}>
+              <Button size="sm" variant="primary">
+                <Presentation className="h-4 w-4" /> Prezentovat
+              </Button>
+            </Link>
           )}
           {isAdmin && (
             <Link to="/match/$matchId/edit" params={{ matchId: String(match.id) }}>

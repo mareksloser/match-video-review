@@ -58,7 +58,7 @@ export function MarkerList({ markers, rules, selectedId, activeId, isAdmin, onSe
                 </span>
               </button>
               {isAdmin ? (
-                <label className="flex shrink-0 cursor-pointer items-center" title="Probráno s týmem na rozboru">
+                <label className="relative flex shrink-0 cursor-pointer items-center" title="Probráno s týmem na rozboru">
                   <input
                     type="checkbox"
                     className="peer sr-only"

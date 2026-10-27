@@ -16,7 +16,7 @@ export function Layout() {
     <div className="flex min-h-screen">
       <aside className="hidden w-[76px] shrink-0 flex-col items-center border-r border-line bg-panel py-4 md:flex">
         <Link to="/" aria-label="Galerie zápasů">
-          <Crest className="h-12 w-11" />
+          <Crest className="h-14 w-12" />
         </Link>
       </aside>
 
@@ -24,7 +24,7 @@ export function Layout() {
         <header className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
           <div className="flex items-center gap-6 px-4 md:px-8">
             <Link to="/" className="md:hidden" aria-label="Galerie zápasů">
-              <Crest className="h-9 w-8" />
+              <Crest className="h-10 w-9" />
             </Link>
             <nav className="flex min-w-0 flex-1 items-center gap-6 overflow-x-auto">
               <Link to="/" className={navLink} activeOptions={{ exact: true }}>
