@@ -1,6 +1,9 @@
 node_modules/
+
 frontend/dist/
 frontend/dist-demo/
+frontend/.env
+
 backend/.env
 backend/vendor/
 backend/public/assets/
