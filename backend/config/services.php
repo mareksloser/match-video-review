@@ -82,6 +82,11 @@ return static function (Container $c): void {
         $c->get(Repository\UserRepository::class),
         $c->get(AccessPolicy::class),
     ));
+    $c->set(Service\UserService::class, fn (Container $c) => new Service\UserService(
+        $c->get(Repository\UserRepository::class),
+        $c->get(Repository\CategoryRepository::class),
+        $c->get(AccessPolicy::class),
+    ));
     $c->set(Service\VideoUploadService::class, fn (Container $c) => new Service\VideoUploadService(
         $c->get(Storage::class),
         $c->get(AccessPolicy::class),
@@ -102,6 +107,7 @@ return static function (Container $c): void {
         $c->get(Repository\RuleRepository::class),
         $c->get(AccessPolicy::class),
     ));
+    $c->set(Controller\UserController::class, fn (Container $c) => new Controller\UserController($c->get(Authenticator::class), $c->get(Service\UserService::class)));
     $c->set(Controller\UploadController::class, fn (Container $c) => new Controller\UploadController($c->get(Authenticator::class), $c->get(Service\VideoUploadService::class)));
 
     // HTTP

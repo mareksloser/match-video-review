@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
-import type { Drawing, Marker, MarkerInput, MatchInput, Rule } from '@/lib/types';
+import type { Drawing, Marker, MarkerInput, MatchInput, Rule, User, UserInput } from '@/lib/types';
 
 export const keys = {
   me: ['me'] as const,
@@ -9,6 +9,7 @@ export const keys = {
   match: (id: number) => ['match', id] as const,
   markers: (matchId: number) => ['markers', matchId] as const,
   rules: ['rules'] as const,
+  users: ['users'] as const,
   analytics: (matchId: number) => ['analytics', matchId] as const,
 };
 
@@ -156,6 +157,32 @@ export function useDeleteRule() {
       void qc.invalidateQueries({ queryKey: ['markers'] }); // markers lose the deleted rule
     },
   });
+}
+
+export const useUsers = () => {
+  const api = useApi();
+  return useQuery({ queryKey: keys.users, queryFn: () => api.users() });
+};
+
+/** Create / update / delete users. Editing yourself refreshes the header too. */
+export function useUserMutations() {
+  const api = useApi();
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: keys.users });
+    void qc.invalidateQueries({ queryKey: ['analytics'] });
+  };
+  return {
+    create: useMutation({ mutationFn: (input: UserInput) => api.createUser(input), onSuccess: refresh }),
+    update: useMutation({
+      mutationFn: ({ id, input }: { id: number; input: UserInput }) => api.updateUser(id, input),
+      onSuccess: (user) => {
+        refresh();
+        if (qc.getQueryData<User | null>(keys.me)?.id === user.id) qc.setQueryData(keys.me, user);
+      },
+    }),
+    remove: useMutation({ mutationFn: (id: number) => api.deleteUser(id), onSuccess: refresh }),
+  };
 }
 
 export function useCreateRule() {

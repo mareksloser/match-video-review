@@ -7,6 +7,7 @@ import { MatchReviewPage } from '@/features/match/MatchReviewPage';
 import { PlaybookPage } from '@/features/playbook/PlaybookPage';
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { UsersPage } from '@/features/users/UsersPage';
 import { isDemo } from '@/api';
 
 const root = createRootRoute({ component: Layout });
@@ -19,6 +20,7 @@ const routes = [
   createRoute({ getParentRoute: () => root, path: '/playbook', component: PlaybookPage }),
   createRoute({ getParentRoute: () => root, path: '/analytics', component: AnalyticsPage }),
   createRoute({ getParentRoute: () => root, path: '/login', component: LoginPage }),
+  createRoute({ getParentRoute: () => root, path: '/users', component: UsersPage }),
 ];
 
 export const router = createRouter({

@@ -103,5 +103,10 @@ export class HttpApiClient implements ApiClient {
     return data as { url: string };
   }
 
+  users: ApiClient['users'] = () => this.request('GET', '/users');
+  createUser: ApiClient['createUser'] = (input) => this.request('POST', '/users', input);
+  updateUser: ApiClient['updateUser'] = (id, input) => this.request('PUT', `/users/${id}`, input);
+  deleteUser = (id: number) => this.request<void>('DELETE', `/users/${id}`);
+
   analytics: ApiClient['analytics'] = (matchId) => this.request('GET', `/matches/${matchId}/analytics`);
 }

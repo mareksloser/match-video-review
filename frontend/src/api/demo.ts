@@ -1,7 +1,7 @@
 import type { ApiClient } from './client';
 import { ApiError } from './client';
 import { createSeed, type DemoDb } from './demoSeed';
-import type { Marker, User } from '@/lib/types';
+import type { Marker, User, UserInput } from '@/lib/types';
 
 const STORAGE_KEY = 'mvr-demo-v3';
 
@@ -262,6 +262,61 @@ export class DemoApiClient implements ApiClient {
     this.requireAdmin();
     // Nothing leaves the browser in the demo: the file plays from memory until the page is closed.
     return { url: URL.createObjectURL(file) };
+  }
+
+  async users() {
+    this.requireAdmin();
+    return this.db.users
+      .map(({ password: _p, ...u }) => u)
+      .sort((a, b) => a.name.localeCompare(b.name, 'cs'));
+  }
+
+  /** Same rules as backend UserData + UserService. */
+  private validateUser(input: UserInput, exceptId: number | null, passwordRequired: boolean) {
+    const fields: Record<string, string> = {};
+    const email = input.email.trim().toLowerCase();
+    if (!input.name.trim()) fields.name = 'Vyplňte jméno (max. 100 znaků).';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fields.email = 'Zadejte platný e-mail.';
+    else if (this.db.users.some((u) => u.email === email && u.id !== exceptId)) fields.email = 'Tento e-mail už používá jiný účet.';
+    if (input.role === 'player' && !input.teamCategoryId) fields.teamCategoryId = 'Hráč musí mít tým, jinak uvidí jen veřejná videa.';
+    if ((passwordRequired || input.password) && input.password.length < 8) fields.password = 'Heslo musí mít alespoň 8 znaků.';
+    if (Object.keys(fields).length) throw new ApiError('Formulář obsahuje chyby.', 422, fields);
+    return { name: input.name.trim(), email, role: input.role, teamCategoryId: input.role === 'player' ? input.teamCategoryId : null };
+  }
+
+  async createUser(input: UserInput) {
+    this.requireAdmin();
+    const user = { ...this.validateUser(input, null, true), id: this.nextId(), password: input.password };
+    this.db.users.push(user);
+    this.persist();
+    const { password: _p, ...rest } = user;
+    return rest;
+  }
+
+  async updateUser(id: number, input: UserInput) {
+    this.requireAdmin();
+    const user = this.db.users.find((u) => u.id === id);
+    if (!user) throw new ApiError('Uživatel neexistuje.', 404);
+    const data = this.validateUser(input, id, false);
+    if (user.role === 'admin' && data.role !== 'admin') {
+      if (id === this.userId) throw new ApiError('Formulář obsahuje chyby.', 422, { role: 'Sami sobě roli trenéra odebrat nemůžete.' });
+      if (this.db.users.filter((u) => u.role === 'admin').length <= 1) throw new ApiError('Formulář obsahuje chyby.', 422, { role: 'Musí zůstat alespoň jeden trenér.' });
+    }
+    Object.assign(user, data, input.password ? { password: input.password } : {});
+    this.persist();
+    const { password: _p, ...rest } = user;
+    return rest;
+  }
+
+  async deleteUser(id: number) {
+    this.requireAdmin();
+    const user = this.db.users.find((u) => u.id === id);
+    if (!user) throw new ApiError('Uživatel neexistuje.', 404);
+    if (id === this.userId) throw new ApiError('Vlastní účet smazat nemůžete.', 403);
+    if (user.role === 'admin' && this.db.users.filter((u) => u.role === 'admin').length <= 1) throw new ApiError('Musí zůstat alespoň jeden trenér.', 403);
+    this.db.users = this.db.users.filter((u) => u.id !== id);
+    this.db.views = this.db.views.filter((v) => v.userId !== id);
+    this.persist();
   }
 
   /** Demo only: restore the seed data. */

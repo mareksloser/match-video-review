@@ -7,6 +7,7 @@ use Mvr\Controller\MarkerController;
 use Mvr\Controller\MatchController;
 use Mvr\Controller\RuleController;
 use Mvr\Controller\UploadController;
+use Mvr\Controller\UserController;
 use Mvr\Http\Router;
 
 return static fn (Router $r): Router => $r
@@ -34,4 +35,9 @@ return static fn (Router $r): Router => $r
     ->add('PUT', '/rules/{id}', [RuleController::class, 'update'])
     ->add('DELETE', '/rules/{id}', [RuleController::class, 'destroy'])
 
-    ->add('POST', '/uploads', [UploadController::class, 'store']);
+    ->add('POST', '/uploads', [UploadController::class, 'store'])
+
+    ->add('GET', '/users', [UserController::class, 'index'])
+    ->add('POST', '/users', [UserController::class, 'store'])
+    ->add('PUT', '/users/{id}', [UserController::class, 'update'])
+    ->add('DELETE', '/users/{id}', [UserController::class, 'destroy']);

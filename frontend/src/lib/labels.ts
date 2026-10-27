@@ -1,4 +1,4 @@
-import type { MarkerKind } from './types';
+import type { MarkerKind, Role } from './types';
 
 /** Order = order in the select and in the list filter. Colors stay distinct on the dark timeline. */
 export const markerKinds: { value: MarkerKind; label: string; color: string }[] = [
@@ -15,6 +15,8 @@ export const markerKinds: { value: MarkerKind; label: string; color: string }[] 
 
 export const kindMeta = (kind: MarkerKind) =>
   markerKinds.find((k) => k.value === kind) ?? markerKinds.find((k) => k.value === 'tactic')!;
+
+export const roleLabels: Record<Role, string> = { admin: 'Trenér', player: 'Hráč', viewer: 'Náhled' };
 
 export const videoTypeLabel: Record<string, string> = {
   veo: 'VEO',

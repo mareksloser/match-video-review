@@ -24,14 +24,25 @@ final class Authenticator
         if ($user === null || !password_verify($password, $user->passwordHash)) {
             throw HttpException::unauthorized('Nesprávný e-mail nebo heslo.');
         }
-        return ['user' => $user, 'token' => $this->tokens->issue($user->id)];
+        return ['user' => $user, 'token' => $this->tokens->issue($user->id, self::stamp($user))];
     }
 
     /** The signed-in user, or null for anonymous visitors. Invalid tokens count as anonymous. */
     public function user(Request $request): ?User
     {
         $token = $request->bearerToken();
-        $id = $token !== null ? $this->tokens->verify($token) : null;
-        return $id !== null ? $this->users->find($id) : null;
+        $claims = $token !== null ? $this->tokens->verify($token) : null;
+        if ($claims === null) {
+            return null;
+        }
+        $user = $this->users->find($claims['uid']);
+        // Deleted user, or password changed since the token was issued → treat as anonymous.
+        return $user !== null && hash_equals(self::stamp($user), $claims['stamp']) ? $user : null;
+    }
+
+    /** Short fingerprint of the password hash (the hash itself never leaves the server). */
+    private static function stamp(User $user): string
+    {
+        return substr(hash('sha256', $user->passwordHash), 0, 16);
     }
 }

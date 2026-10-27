@@ -8,6 +8,15 @@ export interface User {
   teamCategoryId: number | null;
 }
 
+export interface UserInput {
+  name: string;
+  email: string;
+  role: Role;
+  teamCategoryId: number | null;
+  /** Required when creating; empty when editing keeps the current password. */
+  password: string;
+}
+
 export interface TeamCategory {
   id: number;
   name: string;

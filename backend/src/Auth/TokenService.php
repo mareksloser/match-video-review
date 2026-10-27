@@ -19,14 +19,26 @@ final class TokenService
         }
     }
 
-    public function issue(int $userId): string
+    /**
+     * @param string $stamp Value tied to the user's credentials (see Authenticator); when it changes,
+     *                      previously issued tokens stop being accepted.
+     */
+    public function issue(int $userId, string $stamp = ''): string
     {
-        $payload = self::b64(json_encode(['uid' => $userId, 'exp' => $this->clock->now()->getTimestamp() + $this->ttlSeconds], JSON_THROW_ON_ERROR));
+        $payload = self::b64(json_encode([
+            'uid' => $userId,
+            'stm' => $stamp,
+            'exp' => $this->clock->now()->getTimestamp() + $this->ttlSeconds,
+        ], JSON_THROW_ON_ERROR));
         return $payload . '.' . self::b64(hash_hmac('sha256', $payload, $this->secret, true));
     }
 
-    /** Returns the user id, or null for a forged, malformed or expired token. */
-    public function verify(string $token): ?int
+    /**
+     * Returns the user id and stamp, or null for a forged, malformed or expired token.
+     *
+     * @return array{uid: int, stamp: string}|null
+     */
+    public function verify(string $token): ?array
     {
         $parts = explode('.', $token);
         if (count($parts) !== 2) {
@@ -40,7 +52,10 @@ final class TokenService
         if (!is_array($data) || !is_int($data['uid'] ?? null) || !is_int($data['exp'] ?? null)) {
             return null;
         }
-        return $data['exp'] > $this->clock->now()->getTimestamp() ? $data['uid'] : null;
+        if ($data['exp'] <= $this->clock->now()->getTimestamp()) {
+            return null;
+        }
+        return ['uid' => $data['uid'], 'stamp' => is_string($data['stm'] ?? null) ? $data['stm'] : ''];
     }
 
     private static function b64(string $raw): string

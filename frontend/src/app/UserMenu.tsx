@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, LogOut, Users } from 'lucide-react';
 import type { User } from '@/lib/types';
+import { roleLabels } from '@/lib/labels';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +23,7 @@ const initials = (name: string) =>
 export function UserMenu({ user }: { user: User }) {
   const logout = useLogout();
   const navigate = useNavigate();
-  const role = user.role === 'admin' ? 'Trenér' : user.role === 'viewer' ? 'Náhled' : 'Hráč';
+  const role = roleLabels[user.role];
 
   return (
     <DropdownMenu>
@@ -46,6 +47,14 @@ export function UserMenu({ user }: { user: User }) {
           <span className="mt-1 inline-block rounded bg-raised px-1.5 py-0.5 text-xs font-normal text-muted">{role}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {user.role === 'admin' && (
+          <>
+            <DropdownMenuItem onSelect={() => navigate({ to: '/users' })}>
+              <Users className="h-4 w-4 text-muted" /> Uživatelé
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem
           disabled={logout.isPending}
           onSelect={() => logout.mutate(undefined, { onSuccess: () => navigate({ to: '/' }) })}

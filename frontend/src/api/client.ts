@@ -1,5 +1,5 @@
 import type {
-  Drawing, Marker, MarkerInput, Match, MatchAnalytics, MatchInput, Rule, Session, TeamCategory, User,
+  Drawing, Marker, MarkerInput, Match, MatchAnalytics, MatchInput, Rule, Session, TeamCategory, User, UserInput,
 } from '@/lib/types';
 
 /**
@@ -32,6 +32,11 @@ export interface ApiClient {
   deleteRule(id: number): Promise<void>;
 
   analytics(matchId: number): Promise<MatchAnalytics>;
+
+  users(): Promise<User[]>;
+  createUser(input: UserInput): Promise<User>;
+  updateUser(id: number, input: UserInput): Promise<User>;
+  deleteUser(id: number): Promise<void>;
 
   /** Stores a video file (local/FTP storage) and returns its playable URL. */
   uploadVideo(file: File): Promise<{ url: string }>;

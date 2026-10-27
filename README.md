@@ -22,6 +22,14 @@ cp .env.example .env            # vyplňte DB_*, APP_SECRET (min. 16 znaků)
 php bin/create-user.php "Petr Hájek" trener@banik.cz heslo admin
 php bin/create-user.php "Jakub Svoboda" hrac@banik.cz heslo player 1   # 1 = id kategorie A-tým
 php bin/create-user.php "Náhled" view@banik.cz heslo viewer            # vidí všechny týmy, nic nemění
+```
+
+Prvního trenéra je potřeba založit skriptem. Další účty pak trenér spravuje v aplikaci
+(profilové menu → **Uživatelé**): přidání, úprava, změna hesla a mazání. Aplikace nedovolí
+smazat ani degradovat vlastní účet a vždy ponechá alespoň jednoho trenéra.
+Po změně hesla se uživatel odhlásí na všech zařízeních (token je svázaný s heslem).
+
+```bash
 php -S localhost:8080 -t public
 
 # 3) frontend (druhý terminál) — Vite proxuje /api na :8080
