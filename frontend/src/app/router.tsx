@@ -11,19 +11,32 @@ import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { isDemo } from '@/api';
+import { safeRedirect } from '@/lib/redirect';
 
 const root = createRootRoute({ component: Layout });
+
+/** ?m=12 opens the match on marker 12 (shareable link to one situation). */
+const matchSearch = (s: Record<string, unknown>): { m?: number } => {
+  const m = Number(s.m);
+  return Number.isInteger(m) && m > 0 ? { m } : {};
+};
+
+/** ?redirect=/match/2?m=12 brings the user back after login. Only same-site paths (no open redirect). */
+const loginSearch = (s: Record<string, unknown>): { redirect?: string } => {
+  const redirect = safeRedirect(s.redirect);
+  return redirect ? { redirect } : {};
+};
 
 const routes = [
   createRoute({ getParentRoute: () => root, path: '/', component: GalleryPage }),
   createRoute({ getParentRoute: () => root, path: '/new', component: NewMatchPage }),
-  createRoute({ getParentRoute: () => root, path: '/match/$matchId', component: MatchReviewPage }),
+  createRoute({ getParentRoute: () => root, path: '/match/$matchId', component: MatchReviewPage, validateSearch: matchSearch }),
   createRoute({ getParentRoute: () => root, path: '/match/$matchId/edit', component: EditMatchPage }),
   createRoute({ getParentRoute: () => root, path: '/match/$matchId/present', component: PresentPage }),
   createRoute({ getParentRoute: () => root, path: '/match/$matchId/texts', component: MarkerTextsPage }),
   createRoute({ getParentRoute: () => root, path: '/playbook', component: PlaybookPage }),
   createRoute({ getParentRoute: () => root, path: '/analytics', component: AnalyticsPage }),
-  createRoute({ getParentRoute: () => root, path: '/login', component: LoginPage }),
+  createRoute({ getParentRoute: () => root, path: '/login', component: LoginPage, validateSearch: loginSearch }),
   createRoute({ getParentRoute: () => root, path: '/users', component: UsersPage }),
 ];
 

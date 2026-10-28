@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { ArrowLeft, Pencil, Plus, Presentation, SpellCheck } from 'lucide-react';
 import { useCategories, useMarkerMutations, useMarkers, useMatch, useMe, useRules } from '@/app/queries';
 import { Button, ErrorNote, Panel, Spinner } from '@/components/ui';
@@ -24,18 +24,39 @@ export function MatchReviewPage() {
   const match = useMatch(id);
   const markers = useMarkers(id);
   const rules = useRules(!!me.data);
+  const { m } = useSearch({ strict: false }) as { m?: number };
+  const location = useLocation();
 
   if (match.isLoading || markers.isLoading || me.isLoading) return <Spinner />;
+  // A shared link to a team-only match: log in first, then come straight back here.
+  if (match.error && !me.data) return <Navigate to="/login" search={{ redirect: location.href }} replace />;
   if (match.error) return <ErrorNote error={match.error} />;
   if (!match.data) return null;
-  return <ReviewWorkspace key={id} match={match.data} markers={markers.data ?? []} rules={rules.data ?? []} me={me.data ?? null} />;
+  return (
+    <ReviewWorkspace
+      key={id}
+      match={match.data}
+      markers={markers.data ?? []}
+      rules={rules.data ?? []}
+      me={me.data ?? null}
+      initialMarkerId={m ?? null}
+      loginHref={location.href}
+    />
+  );
 }
 
 type Mode = { kind: 'view' } | { kind: 'draw' } | { kind: 'create' } | { kind: 'edit' };
 
 const DRAWING_WINDOW = 3; // seconds after a marker during which its drawing stays on screen
 
-function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers: Marker[]; rules: Rule[]; me: User | null }) {
+function ReviewWorkspace({ match, markers, rules, me, initialMarkerId, loginHref }: {
+  match: Match;
+  markers: Marker[];
+  rules: Rule[];
+  me: User | null;
+  initialMarkerId: number | null;
+  loginHref: string;
+}) {
   const isAdmin = me?.role === 'admin';
   const { engine, state } = useVideoEngine(match.videoType, match.videoUrl);
   const mutations = useMarkerMutations(match.id);
@@ -64,13 +85,34 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
     return source?.drawing?.shapes ?? [];
   }, [overlayOn, selected, active, state.currentTime]);
 
+  const navigate = useNavigate();
   const select = (m: Marker) => {
     if (mode.kind !== 'view') return;
     setSelectedId(m.id);
     engine.pause();
     engine.seek(m.timestampSeconds);
     if (tracksViews(me) && !m.viewedByMe) mutations.markViewed.mutate(m.id);
+    // Keep the address bar on the selected situation, so it can be copied or bookmarked as is.
+    void navigate({ to: '/match/$matchId', params: { matchId: String(match.id) }, search: { m: m.id }, replace: true });
   };
+
+  // Opened from a shared link (?m=12): jump to that situation once.
+  const openedFromLink = useRef(false);
+  useEffect(() => {
+    if (openedFromLink.current || initialMarkerId === null) return;
+    openedFromLink.current = true;
+    const target = markers.find((x) => x.id === initialMarkerId);
+    if (!target) return;
+    select(target);
+    requestAnimationFrame(() => {
+      const item = document.getElementById(`marker-${target.id}`);
+      const list = item?.closest<HTMLElement>('.overflow-y-auto');
+      if (item && list) list.scrollTop += item.getBoundingClientRect().top - list.getBoundingClientRect().top - 8;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMarkerId, markers]);
+
+  const shareUrl = (markerId: number) => `${window.location.origin}/match/${match.id}?m=${markerId}`;
 
   // Optional: stop playback when the playhead crosses a marker
   const prevTime = useRef(state.currentTime);
@@ -214,7 +256,7 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
           {!me && (
             <p className="mt-4 rounded-lg border border-line bg-panel p-4 text-sm text-muted">
               Markery, kresby a poznámky trenéra vidí jen hráči týmu.{' '}
-              <Link to="/login" className="font-medium text-pitch hover:underline">Přihlaste se</Link> a projděte si rozbor.
+              <Link to="/login" search={{ redirect: loginHref }} className="font-medium text-pitch hover:underline">Přihlaste se</Link> a projděte si rozbor.
             </p>
           )}
         </div>
@@ -294,7 +336,15 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
                   }}
                   onDraw={startDrawing}
                   onEdit={() => setMode({ kind: 'edit' })}
-                  onDelete={() => mutations.remove.mutate(selected.id, { onSuccess: () => setSelectedId(null) })}
+                  shareUrl={shareUrl(selected.id)}
+                  onDelete={() =>
+                    mutations.remove.mutate(selected.id, {
+                      onSuccess: () => {
+                        setSelectedId(null);
+                        void navigate({ to: '/match/$matchId', params: { matchId: String(match.id) }, search: {}, replace: true });
+                      },
+                    })
+                  }
                 />
               </Panel>
             )}

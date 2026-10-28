@@ -32,7 +32,7 @@ export function MarkerList({ markers, rules, selectedId, activeId, isAdmin, show
         const rule = rules.find((r) => r.id === m.ruleId);
         const selected = m.id === selectedId;
         return (
-          <li key={m.id}>
+          <li key={m.id} id={`marker-${m.id}`}>
             <div
               className={cn(
                 'flex items-start gap-3 rounded-lg border p-3 transition-colors',

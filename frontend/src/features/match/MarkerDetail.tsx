@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ExternalLink, PenLine, Pencil, Play, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Link2, PenLine, Pencil, Play, Trash2 } from 'lucide-react';
 import type { Marker, Rule } from '@/lib/types';
 import { formatTime } from '@/lib/time';
 import { kindMeta } from '@/lib/labels';
@@ -12,13 +12,15 @@ interface Props {
   isAdmin: boolean;
   canDraw: boolean;
   deepLink: string | null;
+  /** Link to this situation in the app (shared to the team chat). */
+  shareUrl: string;
   onPlay: () => void;
   onDraw: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function MarkerDetail({ marker, rules, isAdmin, canDraw, deepLink, onPlay, onDraw, onEdit, onDelete }: Props) {
+export function MarkerDetail({ marker, rules, isAdmin, canDraw, deepLink, shareUrl, onPlay, onDraw, onEdit, onDelete }: Props) {
   const rule = rules.find((r) => r.id === marker.ruleId);
   const [confirming, setConfirming] = useState(false);
   return (
@@ -42,6 +44,7 @@ export function MarkerDetail({ marker, rules, isAdmin, canDraw, deepLink, onPlay
             <Play className="h-4 w-4 fill-current" /> Přehrát situaci
           </Button>
         )}
+        <ShareButton url={shareUrl} title={`${formatTime(marker.timestampSeconds)} ${marker.title}`} />
         {isAdmin && (
           <>
             {canDraw && (
@@ -90,5 +93,49 @@ export function MarkerDetail({ marker, rules, isAdmin, canDraw, deepLink, onPlay
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Phones: the system share sheet (WhatsApp, Messenger…). Elsewhere: copy to clipboard,
+ * or show the link selected when the clipboard is blocked.
+ */
+function ShareButton({ url, title }: { url: string; title: string }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle');
+  const share = async () => {
+    const touch = window.matchMedia?.('(pointer: coarse)').matches;
+    if (touch && navigator.share) {
+      try {
+        await navigator.share({ title, text: title, url });
+        return;
+      } catch {
+        /* cancelled — fall back to copying */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setState('copied');
+      window.setTimeout(() => setState('idle'), 2000);
+    } catch {
+      setState('manual');
+    }
+  };
+  return (
+    <>
+      <Button size="sm" onClick={share} title="Odkaz přímo na tuto situaci">
+        {state === 'copied' ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />} {state === 'copied' ? 'Zkopírováno' : 'Odkaz'}
+      </Button>
+      {state === 'manual' && (
+        <input
+          readOnly
+          value={url}
+          autoFocus
+          onFocus={(e) => e.currentTarget.select()}
+          onBlur={() => setState('idle')}
+          aria-label="Odkaz na situaci"
+          className="h-8 w-full rounded-md border border-line bg-bg px-2 font-mono text-xs"
+        />
+      )}
+    </>
   );
 }

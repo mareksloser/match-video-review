@@ -1,24 +1,32 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter, useSearch } from '@tanstack/react-router';
 import { useLogin } from '@/app/queries';
 import { Button, ErrorNote, Field, Input, Panel } from '@/components/ui';
 import { Crest } from '@/components/Crest';
 import { isDemo } from '@/api';
+import { safeRedirect } from '@/lib/redirect';
 
 export function LoginPage() {
   const login = useLogin();
   const navigate = useNavigate();
+  const router = useRouter();
+  // Validate again here: non-strict useSearch can return the raw query string value.
+  const redirect = safeRedirect((useSearch({ strict: false }) as { redirect?: unknown }).redirect);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const signIn = (e: string, p: string) => login.mutate({ email: e, password: p }, { onSuccess: () => navigate({ to: '/' }) });
+  // Back to where the user came from (e.g. a shared marker link), validated by the route's loginSearch.
+  const afterLogin = () => (redirect ? router.history.replace(redirect) : navigate({ to: '/' }));
+  const signIn = (e: string, p: string) => login.mutate({ email: e, password: p }, { onSuccess: afterLogin });
 
   return (
     <div className="mx-auto mt-6 max-w-sm">
       <div className="flex flex-col items-center text-center">
         <Crest className="h-24 w-20" />
         <h1 className="mt-3 font-display text-3xl font-semibold">Přihlášení</h1>
-        <p className="mt-1 text-muted">Pro hráče a trenéry SK Baník Libušín.</p>
+        <p className="mt-1 text-muted">
+          {redirect ? 'Pro zobrazení této situace se přihlaste.' : 'Pro hráče a trenéry SK Baník Libušín.'}
+        </p>
       </div>
       <Panel className="mt-6 p-5">
         <form
