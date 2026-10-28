@@ -14,16 +14,23 @@ final class Authenticator
     public function __construct(
         private readonly UserRepository $users,
         private readonly TokenService $tokens,
+        private readonly AuthLog $log,
     ) {
     }
 
     /** @return array{user: User, token: string} */
-    public function login(string $email, string $password): array
+    public function login(string $email, string $password, ClientInfo $client): array
     {
-        $user = $this->users->findByEmail(mb_strtolower(trim($email)));
+        $email = mb_strtolower(trim($email));
+        $this->log->assertNotThrottled($email, $client);
+
+        $user = $email !== '' ? $this->users->findByEmail($email) : null;
         if ($user === null || !password_verify($password, $user->passwordHash)) {
+            // The visitor always gets the same message; only the log tells the two cases apart.
+            $this->log->loginFailed($email, $user, $user === null ? 'Neznámý e-mail' : 'Špatné heslo', $client);
             throw HttpException::unauthorized('Nesprávný e-mail nebo heslo.');
         }
+        $this->log->loginSucceeded($user, $client);
         return ['user' => $user, 'token' => $this->tokens->issue($user->id, self::stamp($user))];
     }
 

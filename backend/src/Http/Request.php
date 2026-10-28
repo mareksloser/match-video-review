@@ -21,10 +21,15 @@ final class Request
         public readonly string $body = '',
         public readonly array $routeParams = [],
         public readonly array $files = [],
+        public readonly string $ip = '',
     ) {
     }
 
-    public static function fromGlobals(): self
+    /**
+     * @param list<string> $trustedProxies IPs of reverse proxies whose X-Forwarded-For may be believed
+     *                                     (e.g. a load balancer); never trust it otherwise, it's spoofable.
+     */
+    public static function fromGlobals(array $trustedProxies = []): self
     {
         $headers = [];
         foreach ($_SERVER as $key => $value) {
@@ -45,13 +50,26 @@ final class Request
             (string) file_get_contents('php://input'),
             [],
             $_FILES,
+            self::clientIp((string) ($_SERVER['REMOTE_ADDR'] ?? ''), $headers['x-forwarded-for'] ?? null, $trustedProxies),
         );
+    }
+
+    /** @param list<string> $trustedProxies */
+    public static function clientIp(string $remote, ?string $forwardedFor, array $trustedProxies): string
+    {
+        if ($forwardedFor !== null && in_array($remote, $trustedProxies, true)) {
+            $first = trim(explode(',', $forwardedFor)[0]);
+            if (filter_var($first, FILTER_VALIDATE_IP)) {
+                return $first;
+            }
+        }
+        return $remote;
     }
 
     /** @param array<string, string> $params */
     public function withRouteParams(array $params): self
     {
-        return new self($this->method, $this->path, $this->query, $this->headers, $this->body, $params, $this->files);
+        return new self($this->method, $this->path, $this->query, $this->headers, $this->body, $params, $this->files, $this->ip);
     }
 
     public function header(string $name): ?string

@@ -1,5 +1,5 @@
 import type {
-  Drawing, Marker, MarkerInput, Match, MatchAnalytics, MatchInput, Rule, Session, TeamCategory, User, UserInput,
+  Drawing, Marker, MarkerInput, Match, MatchAnalytics, MatchInput, Rule, Session, TeamCategory, User, UserInput, ManagedUser, AuthLogFilter, AuthLogPage,
 } from '@/lib/types';
 
 /**
@@ -33,7 +33,8 @@ export interface ApiClient {
 
   analytics(matchId: number): Promise<MatchAnalytics>;
 
-  users(): Promise<User[]>;
+  users(): Promise<ManagedUser[]>;
+  authLog(params: { type: AuthLogFilter; q: string; before: number | null }): Promise<AuthLogPage>;
   createUser(input: UserInput): Promise<User>;
   updateUser(id: number, input: UserInput): Promise<User>;
   deleteUser(id: number): Promise<void>;

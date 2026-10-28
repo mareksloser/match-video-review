@@ -8,6 +8,39 @@ export interface User {
   teamCategoryId: number | null;
 }
 
+export type AuthLogEvent =
+  | 'login_success'
+  | 'login_failed'
+  | 'login_blocked'
+  | 'user_created'
+  | 'user_updated'
+  | 'password_changed'
+  | 'user_deleted';
+
+export type AuthLogFilter = '' | 'logins' | 'failed' | 'blocked' | 'accounts';
+
+export interface AuthLogEntry {
+  id: number;
+  event: AuthLogEvent;
+  createdAt: string;
+  userId: number | null;
+  userName: string | null;
+  email: string | null;
+  actorName: string | null;
+  detail: string | null;
+  ip: string | null;
+  userAgent: string | null;
+}
+
+export interface AuthLogPage {
+  items: AuthLogEntry[];
+  nextBefore: number | null;
+  summary: { success24h: number; failed24h: number; blocked24h: number; failedIps24h: number };
+}
+
+/** User as listed for the coach (with the last successful login). */
+export type ManagedUser = User & { lastLoginAt?: string | null };
+
 export interface UserInput {
   name: string;
   email: string;

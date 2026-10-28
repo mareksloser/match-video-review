@@ -104,6 +104,14 @@ export class HttpApiClient implements ApiClient {
   }
 
   users: ApiClient['users'] = () => this.request('GET', '/users');
+  authLog: ApiClient['authLog'] = ({ type, q, before }) => {
+    const params = new URLSearchParams();
+    if (type) params.set('type', type);
+    if (q.trim()) params.set('q', q.trim());
+    if (before) params.set('before', String(before));
+    const qs = params.toString();
+    return this.request('GET', `/auth-log${qs ? `?${qs}` : ''}`);
+  };
   createUser: ApiClient['createUser'] = (input) => this.request('POST', '/users', input);
   updateUser: ApiClient['updateUser'] = (id, input) => this.request('PUT', `/users/${id}`, input);
   deleteUser = (id: number) => this.request<void>('DELETE', `/users/${id}`);

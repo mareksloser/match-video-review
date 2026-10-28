@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Mvr\Auth\AccessPolicy;
+use Mvr\Auth\AuthLog;
 use Mvr\Auth\Authenticator;
 use Mvr\Auth\TokenService;
 use Mvr\Controller;
@@ -58,7 +59,19 @@ return static function (Container $c): void {
         (int) Env::get('TOKEN_TTL', '1209600'),
     ));
     $c->set(AccessPolicy::class, fn () => new AccessPolicy());
-    $c->set(Authenticator::class, fn (Container $c) => new Authenticator($c->get(Repository\UserRepository::class), $c->get(TokenService::class)));
+    $c->set(Repository\AuthLogRepository::class, fn (Container $c) => new Repository\PdoAuthLogRepository($c->get(\PDO::class)));
+    $c->set(AuthLog::class, fn (Container $c) => new AuthLog(
+        $c->get(Repository\AuthLogRepository::class),
+        $c->get(Clock::class),
+        (int) Env::get('LOGIN_MAX_FAILURES', '10'),
+        (int) Env::get('LOGIN_WINDOW_MINUTES', '15'),
+        (int) Env::get('AUTH_LOG_RETENTION_DAYS', '180'),
+    ));
+    $c->set(Authenticator::class, fn (Container $c) => new Authenticator(
+        $c->get(Repository\UserRepository::class),
+        $c->get(TokenService::class),
+        $c->get(AuthLog::class),
+    ));
 
     // Services
     $c->set(DrawingValidator::class, fn () => new DrawingValidator());
@@ -86,6 +99,7 @@ return static function (Container $c): void {
         $c->get(Repository\UserRepository::class),
         $c->get(Repository\CategoryRepository::class),
         $c->get(AccessPolicy::class),
+        $c->get(AuthLog::class),
     ));
     $c->set(Service\VideoUploadService::class, fn (Container $c) => new Service\VideoUploadService(
         $c->get(Storage::class),
@@ -107,7 +121,17 @@ return static function (Container $c): void {
         $c->get(Repository\RuleRepository::class),
         $c->get(AccessPolicy::class),
     ));
-    $c->set(Controller\UserController::class, fn (Container $c) => new Controller\UserController($c->get(Authenticator::class), $c->get(Service\UserService::class)));
+    $c->set(Controller\UserController::class, fn (Container $c) => new Controller\UserController(
+        $c->get(Authenticator::class),
+        $c->get(Service\UserService::class),
+        $c->get(Repository\AuthLogRepository::class),
+    ));
+    $c->set(Controller\AuthLogController::class, fn (Container $c) => new Controller\AuthLogController(
+        $c->get(Authenticator::class),
+        $c->get(AccessPolicy::class),
+        $c->get(Repository\AuthLogRepository::class),
+        $c->get(Clock::class),
+    ));
     $c->set(Controller\UploadController::class, fn (Container $c) => new Controller\UploadController($c->get(Authenticator::class), $c->get(Service\VideoUploadService::class)));
 
     // HTTP

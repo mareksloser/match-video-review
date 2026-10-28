@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
-import type { Drawing, Marker, MarkerInput, MatchInput, Rule, User, UserInput } from '@/lib/types';
+import type { AuthLogFilter, Drawing, Marker, MarkerInput, MatchInput, Rule, User, UserInput } from '@/lib/types';
 
 export const keys = {
   me: ['me'] as const,
@@ -159,6 +159,16 @@ export function useDeleteRule() {
   });
 }
 
+export function useAuthLog(type: AuthLogFilter, q: string) {
+  const api = useApi();
+  return useInfiniteQuery({
+    queryKey: ['authLog', type, q],
+    queryFn: ({ pageParam }) => api.authLog({ type, q, before: pageParam }),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextBefore,
+  });
+}
+
 export const useUsers = () => {
   const api = useApi();
   return useQuery({ queryKey: keys.users, queryFn: () => api.users() });
@@ -171,6 +181,7 @@ export function useUserMutations() {
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: keys.users });
     void qc.invalidateQueries({ queryKey: ['analytics'] });
+    void qc.invalidateQueries({ queryKey: ['authLog'] });
   };
   return {
     create: useMutation({ mutationFn: (input: UserInput) => api.createUser(input), onSuccess: refresh }),

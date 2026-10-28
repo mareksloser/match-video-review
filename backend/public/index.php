@@ -25,7 +25,7 @@ if (PHP_SAPI === 'cli-server' && is_file(__DIR__ . parse_url($_SERVER['REQUEST_U
 $container = new Container();
 (require __DIR__ . '/../config/services.php')($container);
 
-$request = Request::fromGlobals();
+$request = Request::fromGlobals(Env::list('TRUSTED_PROXIES'));
 if (!str_starts_with($request->path, '/api')) {
     // Everything outside /api is the React SPA (copy frontend/dist here for production).
     $spa = __DIR__ . '/index.html';

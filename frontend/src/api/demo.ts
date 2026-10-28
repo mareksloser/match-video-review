@@ -1,9 +1,9 @@
 import type { ApiClient } from './client';
 import { ApiError } from './client';
 import { createSeed, type DemoDb } from './demoSeed';
-import type { Marker, User, UserInput } from '@/lib/types';
+import type { AuthLogEntry, AuthLogFilter, Marker, User, UserInput } from '@/lib/types';
 
-const STORAGE_KEY = 'mvr-demo-v3';
+const STORAGE_KEY = 'mvr-demo-v4';
 
 export interface DemoStorage {
   load(): DemoDb | null;
@@ -89,9 +89,35 @@ export class DemoApiClient implements ApiClient {
     }
   }
 
+  /** Same events as the backend AuthLog; the demo has no real IP. */
+  private log(event: AuthLogEntry['event'], subject: { id: number | null; name: string | null; email: string }, detail: string | null) {
+    const log = (this.db.authLog ??= []);
+    const actor = event.startsWith('user_') || event === 'password_changed' ? this.user?.name ?? null : null;
+    log.unshift({
+      id: this.nextId(),
+      event,
+      createdAt: new Date().toISOString(),
+      userId: event === 'user_deleted' ? null : subject.id,
+      userName: event === 'user_deleted' ? null : subject.name,
+      email: subject.email,
+      actorName: actor,
+      detail,
+      ip: 'ukázka',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    });
+  }
+
   async login(email: string, password: string) {
-    const u = this.db.users.find((x) => x.email === email.trim().toLowerCase() && x.password === password);
-    if (!u) throw new ApiError('Nesprávný e-mail nebo heslo.', 401);
+    const normalized = email.trim().toLowerCase();
+    const known = this.db.users.find((x) => x.email === normalized);
+    const u = known && known.password === password ? known : null;
+    if (!u) {
+      this.log('login_failed', { id: known?.id ?? null, name: known?.name ?? null, email: normalized }, known ? 'Špatné heslo' : 'Neznámý e-mail');
+      this.persist();
+      throw new ApiError('Nesprávný e-mail nebo heslo.', 401);
+    }
+    this.log('login_success', u, null);
+    this.persist();
     this.setUser(u.id);
     return { user: this.user!, token: `demo-${u.id}` };
   }
@@ -267,8 +293,9 @@ export class DemoApiClient implements ApiClient {
 
   async users() {
     this.requireAdmin();
+    const last = (id: number) => (this.db.authLog ?? []).find((e) => e.event === 'login_success' && e.userId === id)?.createdAt ?? null;
     return this.db.users
-      .map(({ password: _p, ...u }) => u)
+      .map(({ password: _p, ...u }) => ({ ...u, lastLoginAt: last(u.id) }))
       .sort((a, b) => a.name.localeCompare(b.name, 'cs'));
   }
 
@@ -289,6 +316,7 @@ export class DemoApiClient implements ApiClient {
     this.requireAdmin();
     const user = { ...this.validateUser(input, null, true), id: this.nextId(), password: input.password };
     this.db.users.push(user);
+    this.log('user_created', user, `${user.name}, ${user.role}`);
     this.persist();
     const { password: _p, ...rest } = user;
     return rest;
@@ -303,7 +331,13 @@ export class DemoApiClient implements ApiClient {
       if (id === this.userId) throw new ApiError('Formulář obsahuje chyby.', 422, { role: 'Sami sobě roli trenéra odebrat nemůžete.' });
       if (this.db.users.filter((u) => u.role === 'admin').length <= 1) throw new ApiError('Formulář obsahuje chyby.', 422, { role: 'Musí zůstat alespoň jeden trenér.' });
     }
+    const changed = (['name', 'email', 'role', 'teamCategoryId'] as const)
+      .filter((k) => String(user[k] ?? '–') !== String(data[k] ?? '–'))
+      .map((k) => `${k}: ${user[k] ?? '–'} → ${data[k] ?? '–'}`)
+      .join('; ');
     Object.assign(user, data, input.password ? { password: input.password } : {});
+    if (changed) this.log('user_updated', user, changed);
+    if (input.password) this.log('password_changed', user, null);
     this.persist();
     const { password: _p, ...rest } = user;
     return rest;
@@ -317,7 +351,37 @@ export class DemoApiClient implements ApiClient {
     if (user.role === 'admin' && this.db.users.filter((u) => u.role === 'admin').length <= 1) throw new ApiError('Musí zůstat alespoň jeden trenér.', 403);
     this.db.users = this.db.users.filter((u) => u.id !== id);
     this.db.views = this.db.views.filter((v) => v.userId !== id);
+    this.log('user_deleted', user, `${user.name}, ${user.role}`);
     this.persist();
+  }
+
+  async authLog({ type, q, before }: { type: AuthLogFilter; q: string; before: number | null }) {
+    this.requireAdmin();
+    const groups: Record<Exclude<AuthLogFilter, ''>, AuthLogEntry['event'][]> = {
+      logins: ['login_success'],
+      failed: ['login_failed', 'login_blocked'],
+      blocked: ['login_blocked'],
+      accounts: ['user_created', 'user_updated', 'password_changed', 'user_deleted'],
+    };
+    const needle = q.trim().toLowerCase();
+    const all = (this.db.authLog ?? [])
+      .filter((e) => !type || groups[type].includes(e.event))
+      .filter((e) => !needle || [e.email, e.userName, e.ip].some((v) => v?.toLowerCase().includes(needle)))
+      .filter((e) => !before || e.id < before);
+    const items = all.slice(0, 50);
+    const day = Date.now() - 24 * 3600 * 1000;
+    const recent = (this.db.authLog ?? []).filter((e) => Date.parse(e.createdAt) > day);
+    const count = (ev: AuthLogEntry['event']) => recent.filter((e) => e.event === ev).length;
+    return {
+      items,
+      nextBefore: all.length > 50 ? items[items.length - 1].id : null,
+      summary: {
+        success24h: count('login_success'),
+        failed24h: count('login_failed'),
+        blocked24h: count('login_blocked'),
+        failedIps24h: new Set(recent.filter((e) => e.event !== 'login_success').map((e) => e.ip)).size,
+      },
+    };
   }
 
   /** Demo only: restore the seed data. */

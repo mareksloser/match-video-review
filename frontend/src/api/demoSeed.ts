@@ -1,4 +1,4 @@
-import type { Drawing, Marker, Match, Rule, Shape, TeamCategory, User } from '@/lib/types';
+import type { AuthLogEntry, Drawing, Marker, Match, Rule, Shape, TeamCategory, User } from '@/lib/types';
 import { project, simulate } from '@/video/demoMatch';
 
 export interface DemoDb {
@@ -8,6 +8,8 @@ export interface DemoDb {
   markers: Omit<Marker, 'viewedByMe'>[];
   rules: Rule[];
   views: { markerId: number; userId: number; viewedAt: string }[];
+  /** Optional so demo data saved by older versions still loads. */
+  authLog?: AuthLogEntry[];
   seq: number;
 }
 
@@ -127,5 +129,16 @@ export function createSeed(): DemoDb {
   for (const [userId, ids] of Object.entries(viewed))
     ids.forEach((markerId) => views.push({ markerId, userId: Number(userId), viewedAt: '2026-10-25T20:00:00Z' }));
 
-  return { users, categories, matches, markers, rules, views, seq: 100 };
+  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Safari/604.1';
+  const entry = (id: number, event: AuthLogEntry['event'], createdAt: string, email: string, userId: number | null, userName: string | null, detail: string | null, ip: string): AuthLogEntry =>
+    ({ id, event, createdAt, email, userId, userName, actorName: null, detail, ip, userAgent: ua });
+  const authLog: AuthLogEntry[] = [
+    entry(5, 'login_success', '2026-10-25T19:42:00Z', 'hrac@banik.cz', 2, 'Jakub Svoboda', null, '89.24.17.5'),
+    entry(4, 'login_failed', '2026-10-25T19:41:00Z', 'hrac@banik.cz', 2, 'Jakub Svoboda', 'Špatné heslo', '89.24.17.5'),
+    entry(3, 'login_failed', '2026-10-25T03:12:00Z', 'admin@banik.cz', null, null, 'Neznámý e-mail', '185.220.101.4'),
+    entry(2, 'login_success', '2026-10-24T20:05:00Z', 'tomas@banik.cz', 3, 'Tomáš Dvořák', null, '46.135.8.21'),
+    entry(1, 'login_success', '2026-10-24T18:30:00Z', 'trener@banik.cz', 1, 'Petr Hájek', null, '78.80.3.110'),
+  ];
+
+  return { users, categories, matches, markers, rules, views, authLog, seq: 100 };
 }

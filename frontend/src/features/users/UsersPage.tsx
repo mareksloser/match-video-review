@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Copy, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, Pencil, Plus, ScrollText, Search, Trash2 } from 'lucide-react';
 import { useCategories, useMe, useUserMutations, useUsers } from '@/app/queries';
 import { Badge, Button, ErrorNote, Input, Panel, Select, Spinner } from '@/components/ui';
 import { roleLabels } from '@/lib/labels';
+import { formatDateTime, formatRelative } from '@/lib/datetime';
+import { Link } from '@tanstack/react-router';
 import type { Role, User, UserInput } from '@/lib/types';
 import { UserForm } from './UserForm';
 import { cn } from '@/lib/cn';
@@ -51,17 +53,24 @@ export function UsersPage() {
           <h1 className="font-display text-3xl font-semibold">Uživatelé</h1>
           <p className="mt-1 text-muted">Účty hráčů, trenérů a náhledové účty.</p>
         </div>
-        {mode.kind === 'list' && (
-          <Button
-            variant="primary"
-            onClick={() => {
-              setCredentials(null);
-              setMode({ kind: 'create' });
-            }}
-          >
-            <Plus className="h-4 w-4" /> Přidat uživatele
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <Link to="/users/log">
+            <Button>
+              <ScrollText className="h-4 w-4" /> Log přihlášení
+            </Button>
+          </Link>
+          {mode.kind === 'list' && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setCredentials(null);
+                setMode({ kind: 'create' });
+              }}
+            >
+              <Plus className="h-4 w-4" /> Přidat uživatele
+            </Button>
+          )}
+        </div>
       </div>
 
       {credentials && <CredentialsNote credentials={credentials} onClose={() => setCredentials(null)} />}
@@ -114,6 +123,7 @@ export function UsersPage() {
                 <th className="px-4 py-3 font-medium">E-mail</th>
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">Tým</th>
+                <th className="px-4 py-3 font-medium">Poslední přihlášení</th>
                 <th className="px-4 py-3"><span className="sr-only">Akce</span></th>
               </tr>
             </thead>
@@ -128,6 +138,9 @@ export function UsersPage() {
                     <td className="px-4 py-2.5 text-muted">{u.email}</td>
                     <td className="px-4 py-2.5"><Badge className={roleTone[u.role]}>{roleLabels[u.role]}</Badge></td>
                     <td className="px-4 py-2.5">{teamName(u)}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-muted" title={u.lastLoginAt ? formatDateTime(u.lastLoginAt) : undefined}>
+                      {u.lastLoginAt ? formatRelative(u.lastLoginAt) : 'nikdy'}
+                    </td>
                     <td className="px-4 py-2.5">
                       {confirmId === u.id ? (
                         <div className="flex items-center justify-end gap-2">

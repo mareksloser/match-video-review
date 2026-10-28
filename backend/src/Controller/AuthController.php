@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mvr\Controller;
 
 use Mvr\Auth\Authenticator;
+use Mvr\Auth\ClientInfo;
 use Mvr\Http\HttpException;
 use Mvr\Http\Request;
 use Mvr\Http\Response;
@@ -18,7 +19,7 @@ final class AuthController
     public function login(Request $request): Response
     {
         $in = $request->json();
-        $result = $this->auth->login((string) ($in['email'] ?? ''), (string) ($in['password'] ?? ''));
+        $result = $this->auth->login((string) ($in['email'] ?? ''), (string) ($in['password'] ?? ''), ClientInfo::fromRequest($request));
         return Response::json(['user' => $result['user']->toArray(), 'token' => $result['token']]);
     }
 
