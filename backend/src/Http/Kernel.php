@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mvr\Http;
 
+use Mvr\Settings\MaintenanceGate;
+
 /** Turns a Request into a Response: routing, CORS and error mapping. */
 final class Kernel
 {
@@ -12,6 +14,7 @@ final class Kernel
         private readonly Router $router,
         private readonly array $corsOrigins = [],
         private readonly bool $debug = false,
+        private readonly ?MaintenanceGate $maintenance = null,
     ) {
     }
 
@@ -21,7 +24,7 @@ final class Kernel
             return $this->cors($request, new Response(204));
         }
         try {
-            $response = $this->router->dispatch($request);
+            $response = $this->maintenance?->check($request) ?? $this->router->dispatch($request);
         } catch (HttpException $e) {
             $payload = ['error' => $e->getMessage()];
             if ($e->fieldErrors) {

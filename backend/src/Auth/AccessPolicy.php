@@ -16,10 +16,15 @@ use Mvr\Http\HttpException;
  */
 final class AccessPolicy
 {
+    /** @param bool $publicGallery setting "publicGallery": anonymous visitors see public matches */
+    public function __construct(private readonly bool $publicGallery = true)
+    {
+    }
+
     public function canViewMatch(?User $user, MatchVideo $match): bool
     {
         if ($user === null) {
-            return $match->isPublic;
+            return $this->publicGallery && $match->isPublic;
         }
         return $user->seesAllTeams() || $match->isPublic || $match->teamCategoryId === $user->teamCategoryId;
     }

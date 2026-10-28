@@ -107,7 +107,7 @@ export function PresentationView({ videoType, videoUrl, title, markers, rules, o
               tabIndex={-1}
               className={cn(
                 'h-1.5 flex-1 rounded-full transition-colors',
-                i === p.index && p.phase !== 'done' ? 'bg-white' : p.shownIds.includes(x.id) ? 'bg-[rgb(31,191,117)]' : 'bg-white/25',
+                i === p.index && p.phase !== 'done' ? 'bg-white' : p.shownIds.includes(x.id) ? 'bg-[rgb(var(--pitch))]' : 'bg-white/25',
               )}
               title={`${formatTime(x.timestampSeconds)} ${x.title}`}
             />
@@ -160,7 +160,7 @@ export function PresentationView({ videoType, videoUrl, title, markers, rules, o
           <h2 className="mt-2 font-display text-3xl font-semibold leading-tight md:text-4xl">{m.title}</h2>
           {m.description && <p className="mt-2 line-clamp-3 max-w-5xl text-lg leading-snug text-white/85 md:text-xl">{m.description}</p>}
           {rule && (
-            <p className="mt-2 text-base text-[rgb(31,191,117)] md:text-lg">
+            <p className="mt-2 text-base text-[rgb(var(--pitch))] md:text-lg">
               Zásada {rule.code}: {rule.title}
             </p>
           )}
@@ -176,7 +176,7 @@ export function PresentationView({ videoType, videoUrl, title, markers, rules, o
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <button onClick={() => p.goTo(0)} className="rounded-md border border-white/25 px-4 py-2 hover:bg-white/10">Znovu od začátku</button>
-              <button onClick={onExit} className="rounded-md bg-[rgb(31,191,117)] px-4 py-2 font-medium text-[#051c10] hover:opacity-90">Zpět na rozbor</button>
+              <button onClick={onExit} className="rounded-md bg-[rgb(var(--pitch))] px-4 py-2 font-medium text-pitch-ink hover:opacity-90">Zpět na rozbor</button>
             </div>
           </div>
         </div>

@@ -104,6 +104,9 @@ export class HttpApiClient implements ApiClient {
   }
 
   users: ApiClient['users'] = () => this.request('GET', '/users');
+  publicSettings: ApiClient['publicSettings'] = () => this.request('GET', '/settings/public');
+  settings: ApiClient['settings'] = () => this.request('GET', '/settings');
+  updateSettings: ApiClient['updateSettings'] = (values) => this.request('PUT', '/settings', { values });
   authLog: ApiClient['authLog'] = ({ type, q, before }) => {
     const params = new URLSearchParams();
     if (type) params.set('type', type);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useRouter, useSearch } from '@tanstack/react-router';
-import { useLogin } from '@/app/queries';
+import { useLogin, useSettingsValues } from '@/app/queries';
 import { Button, ErrorNote, Field, Input, Panel } from '@/components/ui';
 import { Crest } from '@/components/Crest';
 import { isDemo } from '@/api';
@@ -8,6 +8,7 @@ import { safeRedirect } from '@/lib/redirect';
 
 export function LoginPage() {
   const login = useLogin();
+  const { clubName } = useSettingsValues();
   const navigate = useNavigate();
   const router = useRouter();
   // Validate again here: non-strict useSearch can return the raw query string value.
@@ -25,7 +26,7 @@ export function LoginPage() {
         <Crest className="h-24 w-20" />
         <h1 className="mt-3 font-display text-3xl font-semibold">Přihlášení</h1>
         <p className="mt-1 text-muted">
-          {redirect ? 'Pro zobrazení této situace se přihlaste.' : 'Pro hráče a trenéry SK Baník Libušín.'}
+          {redirect ? 'Pro zobrazení této situace se přihlaste.' : `Pro hráče a trenéry ${clubName}.`}
         </p>
       </div>
       <Panel className="mt-6 p-5">

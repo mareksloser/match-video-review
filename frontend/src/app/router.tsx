@@ -11,6 +11,7 @@ import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { AuthLogPage } from '@/features/authlog/AuthLogPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import { isDemo } from '@/api';
 import { safeRedirect } from '@/lib/redirect';
 
@@ -40,6 +41,7 @@ const routes = [
   createRoute({ getParentRoute: () => root, path: '/login', component: LoginPage, validateSearch: loginSearch }),
   createRoute({ getParentRoute: () => root, path: '/users', component: UsersPage }),
   createRoute({ getParentRoute: () => root, path: '/users/log', component: AuthLogPage }),
+  createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),
 ];
 
 export const router = createRouter({

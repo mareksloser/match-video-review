@@ -1,7 +1,8 @@
 import type { ApiClient } from './client';
 import { ApiError } from './client';
 import { createSeed, type DemoDb } from './demoSeed';
-import type { AuthLogEntry, AuthLogFilter, Marker, User, UserInput } from '@/lib/types';
+import type { AdminSetting, AuthLogEntry, AuthLogFilter, Marker, PublicSettings, SettingKey, User, UserInput } from '@/lib/types';
+import { DEFAULT_SETTINGS, SETTING_META } from '@/lib/settings';
 
 const STORAGE_KEY = 'mvr-demo-v4';
 
@@ -61,7 +62,7 @@ export class DemoApiClient implements ApiClient {
   }
   private canSeeMatch(m: DemoDb['matches'][number]) {
     const u = this.user;
-    if (!u) return m.isPublic;
+    if (!u) return m.isPublic && this.effectiveSettings().publicGallery;
     if (u.role === 'admin' || u.role === 'viewer') return true;
     return m.isPublic || m.teamCategoryId === u.teamCategoryId;
   }
@@ -382,6 +383,61 @@ export class DemoApiClient implements ApiClient {
         failedIps24h: new Set(recent.filter((e) => e.event !== 'login_success').map((e) => e.ip)).size,
       },
     };
+  }
+
+  private effectiveSettings(): PublicSettings {
+    const stored = this.db.settings ?? {};
+    return Object.fromEntries(
+      (Object.keys(DEFAULT_SETTINGS) as SettingKey[]).map((k) => [k, k in stored ? stored[k].value : DEFAULT_SETTINGS[k]]),
+    ) as unknown as PublicSettings;
+  }
+
+  async publicSettings() {
+    return this.effectiveSettings();
+  }
+
+  async settings(): Promise<AdminSetting[]> {
+    this.requireAdmin();
+    const stored = this.db.settings ?? {};
+    const values = this.effectiveSettings();
+    return (Object.keys(DEFAULT_SETTINGS) as SettingKey[]).map((key) => ({
+      key,
+      ...SETTING_META[key],
+      value: values[key],
+      default: DEFAULT_SETTINGS[key],
+      isDefault: !(key in stored),
+      updatedAt: stored[key]?.updatedAt ?? null,
+      updatedBy: stored[key]?.updatedBy ?? null,
+    }));
+  }
+
+  /** Same rules as backend SettingDefinition::validate. */
+  async updateSettings(values: Partial<Record<SettingKey, unknown>>) {
+    this.requireAdmin();
+    const fields: Record<string, string> = {};
+    const clean: Partial<Record<SettingKey, unknown>> = {};
+    for (const [k, v] of Object.entries(values) as [SettingKey, unknown][]) {
+      const meta = SETTING_META[k];
+      if (!meta) fields[k] = 'Neznámé nastavení.';
+      else if (v === null) clean[k] = null;
+      else if (meta.kind === 'bool' && typeof v !== 'boolean') fields[k] = 'Očekávána hodnota ano/ne.';
+      else if (meta.kind === 'color' && !(typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v))) fields[k] = 'Barva musí být ve tvaru #RRGGBB.';
+      else if (meta.kind === 'enum' && !meta.options.includes(v as string)) fields[k] = 'Neplatná volba.';
+      else if ((meta.kind === 'string' || meta.kind === 'text') && typeof v === 'string') {
+        const t = meta.kind === 'string' ? v.trim().replace(/\s+/g, ' ') : v.trim();
+        if (!t && k !== 'maintenanceMessage') fields[k] = 'Pole nesmí být prázdné.';
+        else if (meta.maxLength && t.length > meta.maxLength) fields[k] = `Maximálně ${meta.maxLength} znaků.`;
+        else clean[k] = t;
+      } else clean[k] = meta.kind === 'color' ? String(v).toLowerCase() : v;
+    }
+    if (Object.keys(fields).length) throw new ApiError('Formulář obsahuje chyby.', 422, fields);
+    const stored = (this.db.settings ??= {});
+    for (const [k, v] of Object.entries(clean) as [SettingKey, unknown][]) {
+      if (v === null || v === DEFAULT_SETTINGS[k]) delete stored[k];
+      else stored[k] = { value: v, updatedAt: new Date().toISOString(), updatedBy: this.user?.name ?? null };
+    }
+    this.persist();
+    return this.settings();
   }
 
   /** Demo only: restore the seed data. */

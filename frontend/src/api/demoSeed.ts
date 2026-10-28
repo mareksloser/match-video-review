@@ -10,6 +10,8 @@ export interface DemoDb {
   views: { markerId: number; userId: number; viewedAt: string }[];
   /** Optional so demo data saved by older versions still loads. */
   authLog?: AuthLogEntry[];
+  /** Stored (non-default) settings with metadata. */
+  settings?: Record<string, { value: unknown; updatedAt: string; updatedBy: string | null }>;
   seq: number;
 }
 

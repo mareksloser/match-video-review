@@ -13,6 +13,7 @@ use Mvr\Http\Kernel;
 use Mvr\Http\Router;
 use Mvr\Repository;
 use Mvr\Service;
+use Mvr\Settings;
 use Mvr\Storage\FtpStorage;
 use Mvr\Storage\LocalStorage;
 use Mvr\Storage\Storage;
@@ -58,7 +59,17 @@ return static function (Container $c): void {
         $c->get(Clock::class),
         (int) Env::get('TOKEN_TTL', '1209600'),
     ));
-    $c->set(AccessPolicy::class, fn () => new AccessPolicy());
+    $c->set(Settings\SettingsRegistry::class, fn () => new Settings\SettingsRegistry());
+    $c->set(Settings\SettingsRepository::class, fn (Container $c) => new Settings\PdoSettingsRepository($c->get(\PDO::class)));
+    $c->set(Settings\SettingsService::class, fn (Container $c) => new Settings\SettingsService(
+        $c->get(Settings\SettingsRegistry::class),
+        $c->get(Settings\SettingsRepository::class),
+        new AccessPolicy(), // only requireAdmin() is used there; avoids a cycle with the policy below
+        $c->get(Clock::class),
+    ));
+    $c->set(AccessPolicy::class, fn (Container $c) => new AccessPolicy(
+        (bool) $c->get(Settings\SettingsService::class)->value('publicGallery'),
+    ));
     $c->set(Repository\AuthLogRepository::class, fn (Container $c) => new Repository\PdoAuthLogRepository($c->get(\PDO::class)));
     $c->set(AuthLog::class, fn (Container $c) => new AuthLog(
         $c->get(Repository\AuthLogRepository::class),
@@ -134,11 +145,21 @@ return static function (Container $c): void {
     ));
     $c->set(Controller\UploadController::class, fn (Container $c) => new Controller\UploadController($c->get(Authenticator::class), $c->get(Service\VideoUploadService::class)));
 
+    $c->set(Controller\SettingsController::class, fn (Container $c) => new Controller\SettingsController(
+        $c->get(Authenticator::class),
+        $c->get(Settings\SettingsService::class),
+    ));
+    $c->set(Settings\MaintenanceGate::class, fn (Container $c) => new Settings\MaintenanceGate(
+        $c->get(Settings\SettingsService::class),
+        $c->get(Authenticator::class),
+    ));
+
     // HTTP
     $c->set(Router::class, fn (Container $c) => (require __DIR__ . '/routes.php')(new Router($c)));
     $c->set(Kernel::class, fn (Container $c) => new Kernel(
         $c->get(Router::class),
         Env::list('CORS_ORIGINS'),
         Env::bool('APP_DEBUG'),
+        $c->get(Settings\MaintenanceGate::class),
     ));
 };

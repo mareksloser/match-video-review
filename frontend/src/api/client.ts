@@ -1,5 +1,21 @@
 import type {
-  Drawing, Marker, MarkerInput, Match, MatchAnalytics, MatchInput, Rule, Session, TeamCategory, User, UserInput, ManagedUser, AuthLogFilter, AuthLogPage,
+  AdminSetting,
+  AuthLogFilter,
+  AuthLogPage,
+  Drawing,
+  ManagedUser,
+  Marker,
+  MarkerInput,
+  Match,
+  MatchAnalytics,
+  MatchInput,
+  PublicSettings,
+  Rule,
+  Session,
+  SettingKey,
+  TeamCategory,
+  User,
+  UserInput,
 } from '@/lib/types';
 
 /**
@@ -34,6 +50,11 @@ export interface ApiClient {
   analytics(matchId: number): Promise<MatchAnalytics>;
 
   users(): Promise<ManagedUser[]>;
+
+  publicSettings(): Promise<PublicSettings>;
+  settings(): Promise<AdminSetting[]>;
+  /** null resets a key to its default. */
+  updateSettings(values: Partial<Record<SettingKey, unknown>>): Promise<AdminSetting[]>;
   authLog(params: { type: AuthLogFilter; q: string; before: number | null }): Promise<AuthLogPage>;
   createUser(input: UserInput): Promise<User>;
   updateUser(id: number, input: UserInput): Promise<User>;

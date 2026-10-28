@@ -35,7 +35,7 @@ export function MarkerTimeline({ markers, duration, currentTime, selectedId, onS
             )}
           </div>
         ))}
-        <div className="absolute inset-y-0 left-0 rounded-l bg-[rgb(31,191,117)]/20" style={{ width: pct(currentTime) }} />
+        <div className="absolute inset-y-0 left-0 rounded-l bg-[rgb(var(--pitch))]/20" style={{ width: pct(currentTime) }} />
         <div className="absolute -top-1 bottom-[-4px] w-0.5 bg-white" style={{ left: pct(currentTime) }} aria-hidden="true" />
         {markers.map((m) => {
           const meta = kindMeta(m.kind);

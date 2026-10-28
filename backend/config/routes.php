@@ -7,6 +7,7 @@ use Mvr\Controller\AuthLogController;
 use Mvr\Controller\MarkerController;
 use Mvr\Controller\MatchController;
 use Mvr\Controller\RuleController;
+use Mvr\Controller\SettingsController;
 use Mvr\Controller\UploadController;
 use Mvr\Controller\UserController;
 use Mvr\Http\Router;
@@ -39,6 +40,9 @@ return static fn (Router $r): Router => $r
     ->add('POST', '/uploads', [UploadController::class, 'store'])
 
     ->add('GET', '/auth-log', [AuthLogController::class, 'index'])
+    ->add('GET', '/settings/public', [SettingsController::class, 'publicValues'])
+    ->add('GET', '/settings', [SettingsController::class, 'index'])
+    ->add('PUT', '/settings', [SettingsController::class, 'update'])
     ->add('GET', '/users', [UserController::class, 'index'])
     ->add('POST', '/users', [UserController::class, 'store'])
     ->add('PUT', '/users/{id}', [UserController::class, 'update'])

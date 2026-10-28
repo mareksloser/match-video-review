@@ -41,6 +41,34 @@ export interface AuthLogPage {
 /** User as listed for the coach (with the last successful login). */
 export type ManagedUser = User & { lastLoginAt?: string | null };
 
+export type ThemeSetting = 'system' | 'light' | 'dark';
+
+/** Settings every visitor receives (GET /settings/public). */
+export interface PublicSettings {
+  siteTitle: string;
+  clubName: string;
+  accentColor: string;
+  defaultTheme: ThemeSetting;
+  publicGallery: boolean;
+  maintenanceEnabled: boolean;
+  maintenanceMessage: string;
+}
+
+export type SettingKey = keyof PublicSettings;
+
+/** One row of the coach's settings page (GET /settings). */
+export interface AdminSetting {
+  key: SettingKey;
+  kind: 'string' | 'text' | 'bool' | 'color' | 'enum';
+  value: unknown;
+  default: unknown;
+  isDefault: boolean;
+  options: string[];
+  maxLength: number | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
 export interface UserInput {
   name: string;
   email: string;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
-import { useCategories, useMatches, useMe } from '@/app/queries';
+import { useCategories, useMatches, useMe, useSettingsValues } from '@/app/queries';
 import { Button, ErrorNote, Spinner } from '@/components/ui';
 import { MatchTile } from './MatchTile';
 import { cn } from '@/lib/cn';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn';
 export function GalleryPage() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const { data: me } = useMe();
+  const { clubName } = useSettingsValues();
   const categories = useCategories();
   const matches = useMatches(categoryId);
   const categoryName = (id: number) => categories.data?.find((c) => c.id === id)?.name ?? '';
@@ -18,7 +19,7 @@ export function GalleryPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">
-            {me ? 'Zápasy k rozboru' : 'Videa SK Baník Libušín'}
+            {me ? 'Zápasy k rozboru' : `Videa ${clubName}`}
           </h1>
           <p className="mt-1 max-w-prose text-muted">
             {me

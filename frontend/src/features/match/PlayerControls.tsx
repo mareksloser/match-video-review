@@ -32,7 +32,7 @@ export function PlayerControls({ engine, state, duration, overlayOn, onOverlayCh
         value={Math.min(state.currentTime, duration)}
         onChange={(e) => engine.seek(Number(e.target.value))}
         aria-label="Pozice ve videu"
-        className="h-1.5 w-full cursor-pointer accent-[rgb(31,191,117)]"
+        className="h-1.5 w-full cursor-pointer accent-[rgb(var(--pitch))]"
       />
       <div className="mt-2 flex flex-wrap items-center gap-1">
         {inline && (
@@ -99,7 +99,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', checked ? 'bg-[rgb(31,191,117)]' : 'bg-white/20')}
+        className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors', checked ? 'bg-[rgb(var(--pitch))]' : 'bg-white/20')}
       >
           <span className={cn('absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform', checked ? 'translate-x-4' : 'translate-x-0')} />
       </button>

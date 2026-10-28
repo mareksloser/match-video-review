@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
-import type { AuthLogFilter, Drawing, Marker, MarkerInput, MatchInput, Rule, User, UserInput } from '@/lib/types';
+import type { AuthLogFilter, Drawing, Marker, MarkerInput, MatchInput, Rule, SettingKey, User, UserInput } from '@/lib/types';
+import { DEFAULT_SETTINGS } from '@/lib/settings';
 
 export const keys = {
   me: ['me'] as const,
@@ -10,6 +11,8 @@ export const keys = {
   markers: (matchId: number) => ['markers', matchId] as const,
   rules: ['rules'] as const,
   users: ['users'] as const,
+  publicSettings: ['settings', 'public'] as const,
+  adminSettings: ['settings', 'admin'] as const,
   analytics: (matchId: number) => ['analytics', matchId] as const,
 };
 
@@ -167,6 +170,36 @@ export function useAuthLog(type: AuthLogFilter, q: string) {
     initialPageParam: null as number | null,
     getNextPageParam: (last) => last.nextBefore,
   });
+}
+
+/** Public settings, refreshed every 2 minutes so maintenance mode reaches open tabs. */
+export function usePublicSettings() {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.publicSettings,
+    queryFn: () => api.publicSettings(),
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+    placeholderData: DEFAULT_SETTINGS,
+  });
+}
+
+/** Effective settings with defaults while loading — never undefined. */
+export const useSettingsValues = () => usePublicSettings().data ?? DEFAULT_SETTINGS;
+
+export function useAdminSettings() {
+  const api = useApi();
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: keys.adminSettings, queryFn: () => api.settings() });
+  const update = useMutation({
+    mutationFn: (values: Partial<Record<SettingKey, unknown>>) => api.updateSettings(values),
+    onSuccess: (rows) => {
+      qc.setQueryData(keys.adminSettings, rows);
+      void qc.invalidateQueries({ queryKey: keys.publicSettings });
+      void qc.invalidateQueries({ queryKey: ['matches'] }); // public gallery switch
+    },
+  });
+  return { query, update };
 }
 
 export const useUsers = () => {
