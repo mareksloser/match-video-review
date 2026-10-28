@@ -1,16 +1,18 @@
 import { TriangleAlert } from 'lucide-react';
-import { BACKGROUNDS, contrast, hexToRgb, readableInk, rgbTriplet } from '@/lib/color';
+import { BACKGROUNDS, contrast, hexToRgb, inkFor, rgbTriplet, TEXT_CONTRAST } from '@/lib/color';
+import type { AccentInk } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const PRESETS: { label: string; hex: string }[] = [
   { label: 'Zelená (výchozí)', hex: '#1fbf75' },
+  { label: 'Tmavší zelená (bílý text)', hex: '#11864f' },
   { label: 'Klubová červená', hex: '#d3012a' },
   { label: 'Modrá', hex: '#2f6bff' },
   { label: 'Fialová', hex: '#8b5cf6' },
   { label: 'Oranžová', hex: '#f97316' },
 ];
 
-export function ColorField({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+export function ColorField({ value, ink, onChange }: { value: string; ink: AccentInk; onChange: (hex: string) => void }) {
   const rgb = hexToRgb(value);
   const warnings: string[] = [];
   if (rgb) {
@@ -19,6 +21,11 @@ export function ColorField({ value, onChange }: { value: string; onChange: (hex:
     if (light < 3) warnings.push(`Ve světlém motivu bude barva špatně čitelná (kontrast ${light.toFixed(1)} : 1, doporučeno aspoň 3 : 1).`);
     if (dark < 3) warnings.push(`V tmavém motivu bude barva špatně čitelná (kontrast ${dark.toFixed(1)} : 1, doporučeno aspoň 3 : 1).`);
     const [r, g, b] = rgb;
+    const inkRatio = contrast(rgb, inkFor(rgb, ink));
+    if (inkRatio < TEXT_CONTRAST)
+      warnings.push(
+        `Text na tlačítkách má kontrast ${inkRatio.toFixed(1)} : 1, pro pohodlné čtení je doporučeno aspoň 4,5 : 1. Zvolte tmavší odstín nebo jiný text.`,
+      );
     if (r > 150 && g < 110 && b < 130)
       warnings.push('Červenou aplikace používá pro chyby, mazání a marker „Chyba“. Tlačítka by se s varováními mohla plést.');
   }
@@ -63,7 +70,7 @@ export function ColorField({ value, onChange }: { value: string; onChange: (hex:
             const text = theme === 'light' ? '#101824' : '#e5ebf2';
             return (
               <div key={theme} className="flex items-center gap-3 rounded-lg border border-line p-3" style={{ background: `rgb(${rgbTriplet(bg)})`, color: text }}>
-                <span className="rounded-md px-3 py-1.5 text-sm font-medium" style={{ background: value, color: `rgb(${rgbTriplet(readableInk(rgb))})` }}>
+                <span className="rounded-md px-3 py-1.5 text-sm font-medium" style={{ background: value, color: `rgb(${rgbTriplet(inkFor(rgb, ink))})` }}>
                   Tlačítko
                 </span>
                 <span className="text-sm font-medium" style={{ color: value }}>Odkaz</span>

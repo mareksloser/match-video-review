@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { RotateCcw, Wrench } from 'lucide-react';
 import { useAdminSettings, useMe } from '@/app/queries';
 import { Button, ErrorNote, Input, Panel, Spinner, Textarea } from '@/components/ui';
-import type { AdminSetting, SettingKey } from '@/lib/types';
+import type { AccentInk, AdminSetting, SettingKey } from '@/lib/types';
 import { formatRelative } from '@/lib/datetime';
-import { hexToRgb, readableInk, rgbTriplet } from '@/lib/color';
+import { hexToRgb, inkFor, rgbTriplet } from '@/lib/color';
 import { cn } from '@/lib/cn';
 import { ColorField } from './ColorField';
 
@@ -50,22 +50,24 @@ export function SettingsPage() {
   };
   const changes = Object.keys(draft).length + resets.size;
 
-  // Live preview of the accent color while editing; the saved one comes back on leave.
+  // Live preview of the accent color (and button text) while editing; the saved ones come back on leave.
   const previewColor = value<string>('accentColor');
+  const previewInk = value<AccentInk>('accentInk');
   const savedColor = rows.accentColor?.value as string | undefined;
+  const savedInk = (rows.accentInk?.value as AccentInk | undefined) ?? 'auto';
   useEffect(() => {
     const rgb = previewColor && hexToRgb(previewColor);
-    if (!rgb || previewColor === savedColor) return;
+    if (!rgb || (previewColor === savedColor && previewInk === savedInk)) return;
     const root = document.documentElement;
     root.style.setProperty('--pitch', rgbTriplet(rgb));
-    root.style.setProperty('--pitch-ink', rgbTriplet(readableInk(rgb)));
+    root.style.setProperty('--pitch-ink', rgbTriplet(inkFor(rgb, previewInk ?? 'auto')));
     return () => {
       const back = savedColor && hexToRgb(savedColor);
       if (!back) return;
       root.style.setProperty('--pitch', rgbTriplet(back));
-      root.style.setProperty('--pitch-ink', rgbTriplet(readableInk(back)));
+      root.style.setProperty('--pitch-ink', rgbTriplet(inkFor(back, savedInk)));
     };
-  }, [previewColor, savedColor]);
+  }, [previewColor, previewInk, savedColor, savedInk]);
 
   if (me?.role !== 'admin') return <p className="text-muted">Nastavení spravuje trenér.</p>;
   if (query.isLoading) return <Spinner />;
@@ -107,22 +109,22 @@ export function SettingsPage() {
           <Input value={value<string>('clubName')} maxLength={80} onChange={(e) => set('clubName', e.target.value)} aria-label="Název klubu" />
         </Setting>
         <Setting label="Hlavní barva" hint="Tlačítka, odkazy, aktivní položky. Náhled se projeví hned, uloží se až tlačítkem Uložit." {...meta('accentColor')}>
-          <ColorField value={value<string>('accentColor')} onChange={(v) => set('accentColor', v)} />
+          <ColorField value={value<string>('accentColor')} ink={value<AccentInk>('accentInk') ?? 'auto'} onChange={(v) => set('accentColor', v)} />
+        </Setting>
+        <Setting label="Text na tlačítkách" hint="Automaticky se volí bílý nebo tmavý text podle toho, co je na hlavní barvě čitelnější." {...meta('accentInk')}>
+          <Segmented
+            label="Text na tlačítkách"
+            value={value<string>('accentInk') ?? 'auto'}
+            onChange={(v) => set('accentInk', v)}
+            options={[
+              { value: 'auto', label: 'Automaticky' },
+              { value: 'light', label: 'Bílý' },
+              { value: 'dark', label: 'Tmavý' },
+            ]}
+          />
         </Setting>
         <Setting label="Motiv" hint="„Podle zařízení“ respektuje světlý nebo tmavý režim telefonu či počítače." {...meta('defaultTheme')}>
-          <div className="inline-flex rounded-lg border border-line p-1" role="radiogroup" aria-label="Motiv">
-            {themeOptions.map((o) => (
-              <button
-                key={o.value}
-                role="radio"
-                aria-checked={value('defaultTheme') === o.value}
-                onClick={() => set('defaultTheme', o.value)}
-                className={cn('rounded-md px-3 py-1.5 text-sm', value('defaultTheme') === o.value ? 'bg-pitch text-pitch-ink' : 'text-muted hover:text-ink')}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <Segmented label="Motiv" value={value<string>('defaultTheme')} onChange={(v) => set('defaultTheme', v)} options={themeOptions} />
         </Setting>
       </Section>
 
@@ -212,6 +214,25 @@ function Setting({
           Změněno {formatRelative(row.updatedAt)}{row.updatedBy ? `, ${row.updatedBy}` : ''}
         </p>
       )}
+    </div>
+  );
+}
+
+function Segmented({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <div className="inline-flex w-fit rounded-lg border border-line p-1" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn('rounded-md px-3 py-1.5 text-sm', value === o.value ? 'bg-pitch text-pitch-ink' : 'text-muted hover:text-ink')}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }

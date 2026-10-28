@@ -32,5 +32,15 @@ export const INK_LIGHT: [number, number, number] = [255, 255, 255];
 export const readableInk = (accent: [number, number, number]) =>
   contrast(accent, INK_DARK) >= contrast(accent, INK_LIGHT) ? INK_DARK : INK_LIGHT;
 
+/** Button text color for the accent: chosen explicitly, or the more readable one. */
+export function inkFor(accent: [number, number, number], mode: 'auto' | 'light' | 'dark'): [number, number, number] {
+  if (mode === 'light') return INK_LIGHT;
+  if (mode === 'dark') return INK_DARK;
+  return readableInk(accent);
+}
+
+/** WCAG AA for normal-size text. */
+export const TEXT_CONTRAST = 4.5;
+
 /** App backgrounds the accent is used on as text/icons (light and dark theme). */
 export const BACKGROUNDS = { light: [255, 255, 255] as [number, number, number], dark: [19, 27, 40] as [number, number, number] };

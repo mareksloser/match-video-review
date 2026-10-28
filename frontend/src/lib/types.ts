@@ -42,12 +42,14 @@ export interface AuthLogPage {
 export type ManagedUser = User & { lastLoginAt?: string | null };
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
+export type AccentInk = 'auto' | 'light' | 'dark';
 
 /** Settings every visitor receives (GET /settings/public). */
 export interface PublicSettings {
   siteTitle: string;
   clubName: string;
   accentColor: string;
+  accentInk: AccentInk;
   defaultTheme: ThemeSetting;
   publicGallery: boolean;
   maintenanceEnabled: boolean;
