@@ -6,7 +6,7 @@ import { Button, ErrorNote, Panel, Spinner } from '@/components/ui';
 import { useVideoEngine } from '@/video/usePlayback';
 import { useDrawingEditor } from '@/canvas/useDrawingEditor';
 import { activeMarkerIndex, formatTime } from '@/lib/time';
-import { formatDate } from '@/lib/labels';
+import { formatDate, tracksViews } from '@/lib/labels';
 import type { Marker, MarkerInput, MarkerKind, Match, Rule, User } from '@/lib/types';
 import { VideoStage } from './VideoStage';
 import { PlayerControls } from './PlayerControls';
@@ -69,7 +69,7 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
     setSelectedId(m.id);
     engine.pause();
     engine.seek(m.timestampSeconds);
-    if (me && !isAdmin && !m.viewedByMe) mutations.markViewed.mutate(m.id);
+    if (tracksViews(me) && !m.viewedByMe) mutations.markViewed.mutate(m.id);
   };
 
   // Optional: stop playback when the playhead crosses a marker
@@ -155,7 +155,7 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
         <div className="flex items-center gap-4">
           {me && markers.length > 0 && (
             <p className="text-sm text-muted">
-              {isAdmin ? (
+              {!tracksViews(me) ? (
                 <>Probráno s týmem <span className="tabular font-medium text-ink">{reviewed} z {markers.length}</span></>
               ) : (
                 <>Zhlédnuto <span className="tabular font-medium text-ink">{markers.filter((m) => m.viewedByMe).length} z {markers.length}</span></>
@@ -238,6 +238,7 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
                   selectedId={selectedId}
                   activeId={active?.id ?? null}
                   isAdmin={isAdmin}
+                  showViews={tracksViews(me)}
                   onSelect={select}
                   onReviewedChange={(m, reviewedNow) => mutations.setReviewed.mutate({ id: m.id, reviewed: reviewedNow })}
                 />

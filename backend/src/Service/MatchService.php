@@ -31,7 +31,7 @@ final class MatchService
             $this->matches->list($categoryId),
             fn (MatchVideo $m) => $this->policy->canViewMatch($viewer, $m),
         ));
-        $stats = $this->matches->stats(array_map(fn (MatchVideo $m) => $m->id, $visible), $viewer?->id);
+        $stats = $this->matches->stats(array_map(fn (MatchVideo $m) => $m->id, $visible), $this->viewTracked($viewer));
 
         return array_map(fn (MatchVideo $m) => $this->present($m, $viewer, $stats[$m->id] ?? null), $visible);
     }
@@ -40,7 +40,7 @@ final class MatchService
     public function get(?User $viewer, int $id): array
     {
         $match = $this->visibleMatch($viewer, $id);
-        return $this->present($match, $viewer, $this->matches->stats([$id], $viewer?->id)[$id] ?? null);
+        return $this->present($match, $viewer, $this->matches->stats([$id], $this->viewTracked($viewer))[$id] ?? null);
     }
 
     public function visibleMatch(?User $viewer, int $id): MatchVideo
@@ -98,10 +98,17 @@ final class MatchService
         $this->matches->delete($id);
     }
 
+    /** User id for "viewed" counts, only for users whose views are recorded. */
+    private function viewTracked(?User $viewer): ?int
+    {
+        return $this->policy->tracksViews($viewer) ? $viewer?->id : null;
+    }
+
     /** @return array<string, mixed> */
     private function present(MatchVideo $m, ?User $viewer, ?MatchStats $stats): array
     {
-        $stats = $this->policy->canViewMarkers($viewer, $m) ? ($stats ?? new MatchStats(0, 0, $viewer ? 0 : null)) : MatchStats::hidden();
+        $tracked = $this->policy->tracksViews($viewer);
+        $stats = $this->policy->canViewMarkers($viewer, $m) ? ($stats ?? new MatchStats(0, 0, $tracked ? 0 : null)) : MatchStats::hidden();
         return $m->toArray() + [
             'markerCount' => $stats->markerCount,
             'reviewedCount' => $stats->reviewedCount,

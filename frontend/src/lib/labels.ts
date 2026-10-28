@@ -16,6 +16,9 @@ export const markerKinds: { value: MarkerKind; label: string; color: string }[] 
 export const kindMeta = (kind: MarkerKind) =>
   markerKinds.find((k) => k.value === kind) ?? markerKinds.find((k) => k.value === 'tactic')!;
 
+/** Only players' views are recorded (mirrors AccessPolicy::tracksViews on the backend). */
+export const tracksViews = (user: { role: Role } | null | undefined) => user?.role === 'player';
+
 export const roleLabels: Record<Role, string> = { admin: 'Trenér', player: 'Hráč', viewer: 'Náhled' };
 
 export const videoTypeLabel: Record<string, string> = {

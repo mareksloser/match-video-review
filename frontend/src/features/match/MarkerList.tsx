@@ -11,11 +11,13 @@ interface Props {
   selectedId: number | null;
   activeId: number | null;
   isAdmin: boolean;
+  /** "Nové" / viewed tick — only for players, whose views are recorded. */
+  showViews: boolean;
   onSelect: (m: Marker) => void;
   onReviewedChange: (m: Marker, reviewed: boolean) => void;
 }
 
-export function MarkerList({ markers, rules, selectedId, activeId, isAdmin, onSelect, onReviewedChange }: Props) {
+export function MarkerList({ markers, rules, selectedId, activeId, isAdmin, showViews, onSelect, onReviewedChange }: Props) {
   if (!markers.length)
     return (
       <p className="px-4 py-6 text-sm text-muted">
@@ -53,7 +55,7 @@ export function MarkerList({ markers, rules, selectedId, activeId, isAdmin, onSe
                     {rule && <span>Zásada {rule.code}</span>}
                     {m.drawing && <span>Kresba</span>}
                     {!isAdmin && m.reviewed && <span className="text-pitch">Probráno na rozboru</span>}
-                    {!isAdmin && !m.viewedByMe && <span className="font-medium text-ink">Nové</span>}
+                    {showViews && !m.viewedByMe && <span className="font-medium text-ink">Nové</span>}
                   </span>
                 </span>
               </button>
@@ -71,7 +73,7 @@ export function MarkerList({ markers, rules, selectedId, activeId, isAdmin, onSe
                   </span>
                 </label>
               ) : (
-                m.viewedByMe && (
+                showViews && m.viewedByMe && (
                   <span className="mt-1 shrink-0 text-muted" title="Zhlédnuto">
                     <Check className="h-4 w-4" />
                   </span>

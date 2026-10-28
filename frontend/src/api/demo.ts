@@ -117,7 +117,7 @@ export class DemoApiClient implements ApiClient {
           ...m,
           markerCount: markers.length,
           reviewedCount: markers.filter((x) => x.reviewed).length,
-          viewedCount: this.userId
+          viewedCount: this.user?.role === 'player'
             ? markers.filter((x) => this.db.views.some((v) => v.markerId === x.id && v.userId === this.userId)).length
             : undefined,
         };
@@ -201,9 +201,10 @@ export class DemoApiClient implements ApiClient {
   }
 
   async markViewed(markerId: number) {
-    if (!this.userId) return;
-    if (this.db.views.some((v) => v.markerId === markerId && v.userId === this.userId)) return;
-    this.db.views.push({ markerId, userId: this.userId, viewedAt: new Date().toISOString() });
+    const userId = this.user?.role === 'player' ? this.userId : null; // same as AccessPolicy::tracksViews
+    if (!userId) return;
+    if (this.db.views.some((v) => v.markerId === markerId && v.userId === userId)) return;
+    this.db.views.push({ markerId, userId, viewedAt: new Date().toISOString() });
     this.persist();
   }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mvr\Auth;
 
 use Mvr\Domain\MatchVideo;
+use Mvr\Domain\Role;
 use Mvr\Domain\User;
 use Mvr\Http\HttpException;
 
@@ -26,6 +27,15 @@ final class AccessPolicy
     public function canViewMarkers(?User $user, MatchVideo $match): bool
     {
         return $user !== null && ($user->seesAllTeams() || $match->teamCategoryId === $user->teamCategoryId);
+    }
+
+    /**
+     * Only players' views are recorded. Viewers (and coaches) browse without leaving a trace,
+     * so a shared read-only account never marks situations as seen for anyone.
+     */
+    public function tracksViews(?User $user): bool
+    {
+        return $user !== null && $user->role === Role::Player;
     }
 
     public function requireUser(?User $user): User

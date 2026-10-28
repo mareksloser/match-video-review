@@ -36,7 +36,7 @@ export interface Match {
   isPublic: boolean;
   markerCount: number;
   reviewedCount: number;
-  viewedCount?: number; // only for logged-in players
+  viewedCount?: number | null; // only for players (their views are recorded)
 }
 
 export type MarkerKind =

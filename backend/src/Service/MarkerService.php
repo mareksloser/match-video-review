@@ -83,6 +83,9 @@ final class MarkerService
     public function markViewed(?User $viewer, int $id): void
     {
         $user = $this->policy->requireUser($viewer);
+        if (!$this->policy->tracksViews($user)) {
+            return; // viewer/coach: accepted but not recorded (204), so clients need no special case
+        }
         $marker = $this->existing($id, $user);
         $match = $this->matches->visibleMatch($user, $marker->matchId);
         if (!$this->policy->canViewMarkers($user, $match)) {

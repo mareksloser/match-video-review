@@ -4,7 +4,9 @@ import type { Match } from '@/lib/types';
 import { formatDate, videoTypeLabel } from '@/lib/labels';
 
 export function MatchTile({ match, categoryName, signedIn, isAdmin }: { match: Match; categoryName: string; signedIn: boolean; isAdmin: boolean }) {
-  const done = isAdmin ? match.reviewedCount : match.viewedCount ?? 0;
+  // Players see their own progress; coaches and viewers see what was discussed with the team.
+  const ownViews = match.viewedCount !== null && match.viewedCount !== undefined && !isAdmin;
+  const done = ownViews ? match.viewedCount ?? 0 : match.reviewedCount;
   const progress = match.markerCount ? done / match.markerCount : 0;
   return (
     <Link
@@ -37,7 +39,7 @@ export function MatchTile({ match, categoryName, signedIn, isAdmin }: { match: M
         {signedIn && match.markerCount > 0 && (
           <div className="mt-3">
             <div className="flex justify-between text-xs text-muted">
-              <span>{isAdmin ? 'Probráno s týmem' : 'Zhlédnuto'}</span>
+              <span>{ownViews ? 'Zhlédnuto' : 'Probráno s týmem'}</span>
               <span className="tabular">{done} / {match.markerCount}</span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-raised">
