@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
-import { ArrowLeft, Pencil, Plus, Presentation } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus, Presentation, SpellCheck } from 'lucide-react';
 import { useCategories, useMarkerMutations, useMarkers, useMatch, useMe, useRules } from '@/app/queries';
 import { Button, ErrorNote, Panel, Spinner } from '@/components/ui';
 import { useVideoEngine } from '@/video/usePlayback';
@@ -166,6 +166,13 @@ function ReviewWorkspace({ match, markers, rules, me }: { match: Match; markers:
             <Link to="/match/$matchId/present" params={{ matchId: String(match.id) }}>
               <Button size="sm" variant="primary">
                 <Presentation className="h-4 w-4" /> Prezentovat
+              </Button>
+            </Link>
+          )}
+          {isAdmin && markers.length > 0 && (
+            <Link to="/match/$matchId/texts" params={{ matchId: String(match.id) }}>
+              <Button size="sm" title="Korektura textů markerů přes AI">
+                <SpellCheck className="h-4 w-4" /> Korektura
               </Button>
             </Link>
           )}

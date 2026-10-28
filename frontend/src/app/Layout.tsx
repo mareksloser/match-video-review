@@ -1,5 +1,5 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { BookOpen, ChartColumn, Film, LogIn } from 'lucide-react';
+import { BookOpen, ChartColumn, Film, LogIn, Users } from 'lucide-react';
 import { Crest } from '@/components/Crest';
 import { useMe } from './queries';
 import { UserMenu } from './UserMenu';
@@ -36,9 +36,14 @@ export function Layout() {
                 </Link>
               )}
               {me?.role === 'admin' && (
-                <Link to="/analytics" className={navLink}>
-                  <ChartColumn className="h-4 w-4" /> Zhlédnutí
-                </Link>
+                <>
+                  <Link to="/analytics" className={navLink}>
+                    <ChartColumn className="h-4 w-4" /> Zhlédnutí
+                  </Link>
+                  <Link to="/users" className={navLink}>
+                    <Users className="h-4 w-4" /> Uživatelé
+                  </Link>
+                </>
               )}
             </nav>
             {me ? (
