@@ -76,11 +76,14 @@ final class TokenVerifier
         if (!in_array($this->audience, is_array($audience) ? $audience : [$audience], true)) {
             return sprintf('audience %s does not contain OIDC_CLIENT_ID %s', self::q($audience), self::q($this->audience));
         }
-        if (!is_int($claims['exp'] ?? null) || $claims['exp'] <= $now - $this->leewaySeconds) {
-            return sprintf('expired (exp %s, server time %d – check the clock)', self::q($claims['exp'] ?? null), $now);
+        // NumericDate may be fractional (RFC 7519), e.g. 1793736265.301978
+        $exp = $claims['exp'] ?? null;
+        if ((!is_int($exp) && !is_float($exp)) || $exp <= $now - $this->leewaySeconds) {
+            return sprintf('expired (exp %s, server time %d – check the clock)', self::q($exp), $now);
         }
-        if (isset($claims['nbf']) && (!is_int($claims['nbf']) || $claims['nbf'] > $now + $this->leewaySeconds)) {
-            return sprintf('not valid yet (nbf %s, server time %d – check the clock)', self::q($claims['nbf']), $now);
+        $nbf = $claims['nbf'] ?? null;
+        if ($nbf !== null && ((!is_int($nbf) && !is_float($nbf)) || $nbf > $now + $this->leewaySeconds)) {
+            return sprintf('not valid yet (nbf %s, server time %d – check the clock)', self::q($nbf), $now);
         }
         if (!is_string($claims['sub'] ?? null) || $claims['sub'] === '') {
             return 'missing sub';
