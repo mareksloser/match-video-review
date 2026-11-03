@@ -63,7 +63,9 @@ export class OidcAuthSession implements AuthSession {
 
   async signIn(returnTo?: string): Promise<void> {
     const state: SignInState = { returnTo };
-    await (await this.manager()).signinRedirect({ state });
+    // replace: the page that started the sign-in (/login) doesn't stay in history, so Back
+    // from the club login doesn't land on it and bounce straight back to the IdP.
+    await (await this.manager()).signinRedirect({ state, redirectMethod: 'replace' });
   }
 
   async completeSignIn(): Promise<string | null> {

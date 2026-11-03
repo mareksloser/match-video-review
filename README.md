@@ -51,6 +51,9 @@ MVR has no passwords. Users sign in with their club account at the club IdP
   The frontend reads both from `GET /api/auth/config`, so builds don't depend on the environment.
 - `team_categories.slug` must match the team slugs in the IdP, otherwise players end up without a team.
 
+`/login` has no form: it sends the user straight to the club login (and back to the page they came from).
+Only the demo build shows a page, with demo accounts.
+
 Local users are created on the first sign-in and updated on every later one (name, e-mail, role, team),
 so roles are managed only in the IdP. Accounts that existed before SSO are linked by e-mail on their
 first sign-in and keep their markers and view history. A club account without an MVR role gets a notice
