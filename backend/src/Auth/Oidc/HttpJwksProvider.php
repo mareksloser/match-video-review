@@ -55,6 +55,9 @@ final class HttpJwksProvider implements JwksProvider
         $body = ($this->fetch)($this->jwksUrl);
         $data = $body !== null ? json_decode($body, true) : null;
         if (!is_array($data) || !is_array($data['keys'] ?? null)) {
+            if ($body !== null) {
+                error_log("[mvr] JWKS from {$this->jwksUrl} is not a JWK set: " . mb_substr($body, 0, 200));
+            }
             return null;
         }
 
@@ -93,7 +96,12 @@ final class HttpJwksProvider implements JwksProvider
     {
         $context = stream_context_create(['http' => ['timeout' => 5, 'header' => "Accept: application/json\r\n"]]);
         $body = @file_get_contents($url, false, $context);
+        if ($body === false) {
+            // Typical causes: allow_url_fopen off, missing CA bundle (openssl.cafile), DNS, firewall.
+            error_log("[mvr] cannot download JWKS from $url: " . (error_get_last()['message'] ?? 'unknown error'));
+            return null;
+        }
 
-        return $body === false ? null : $body;
+        return $body;
     }
 }
