@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from '@tanstack/react-router';
+import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
 import { BookOpen, ChartColumn, Film, LogIn, Settings, Users, Wrench } from 'lucide-react';
 import { Crest } from '@/components/Crest';
 import { useMe, useSettingsValues } from './queries';
@@ -7,6 +7,7 @@ import { SettingsEffects } from './SettingsEffects';
 import { UserMenu } from './UserMenu';
 import { isDemo } from '@/api';
 import { cn } from '@/lib/cn';
+import { useSecretClicks } from '@/lib/useSecretClicks';
 
 const navLink =
   'relative flex h-14 items-center gap-2 px-1 text-[0.95rem] text-muted transition-colors hover:text-ink data-[status=active]:text-ink data-[status=active]:after:absolute data-[status=active]:after:inset-x-0 data-[status=active]:after:bottom-0 data-[status=active]:after:h-0.5 data-[status=active]:after:bg-pitch';
@@ -15,6 +16,9 @@ export function Layout() {
   const { data: me } = useMe();
   const settings = useSettingsValues();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  // Easter egg: five quick clicks on the crest open the penalty game.
+  const crestClick = useSecretClicks(() => void navigate({ to: '/penalta' }));
   // Maintenance: everyone except coaches sees the notice; /login stays reachable for coaches.
   const blocked = settings.maintenanceEnabled && me?.role !== 'admin' && pathname !== '/login';
 
@@ -22,7 +26,7 @@ export function Layout() {
     <div className="flex min-h-screen">
       <SettingsEffects />
       <aside className="hidden w-[76px] shrink-0 flex-col items-center border-r border-line bg-panel py-4 md:flex">
-        <Link to="/" aria-label="Galerie zápasů">
+        <Link to="/" aria-label="Galerie zápasů" onClick={crestClick}>
           <Crest className="h-14 w-12" label={settings.clubName} />
         </Link>
       </aside>
@@ -30,7 +34,7 @@ export function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
           <div className="flex items-center gap-6 px-4 md:px-8">
-            <Link to="/" className="md:hidden" aria-label="Galerie zápasů">
+            <Link to="/" className="md:hidden" aria-label="Galerie zápasů" onClick={crestClick}>
               <Crest className="h-10 w-9" />
             </Link>
             <nav className="flex min-w-0 flex-1 items-center gap-6 overflow-x-auto">

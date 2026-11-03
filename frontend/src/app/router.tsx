@@ -1,5 +1,7 @@
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, createBrowserHistory } from '@tanstack/react-router';
 import { Layout } from './Layout';
+import { NotFoundPage } from './NotFoundPage';
+import { PenaltyPage } from '@/features/maintenance/PenaltyPage';
 import { GalleryPage } from '@/features/gallery/GalleryPage';
 import { NewMatchPage } from '@/features/gallery/NewMatchPage';
 import { EditMatchPage } from '@/features/gallery/EditMatchPage';
@@ -15,7 +17,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { isDemo } from '@/api';
 import { safeRedirect } from '@/lib/redirect';
 
-const root = createRootRoute({ component: Layout });
+const root = createRootRoute({ component: Layout, notFoundComponent: NotFoundPage });
 
 /** ?m=12 opens the match on marker 12 (shareable link to one situation). */
 const matchSearch = (s: Record<string, unknown>): { m?: number } => {
@@ -42,6 +44,7 @@ const routes = [
   createRoute({ getParentRoute: () => root, path: '/users', component: UsersPage }),
   createRoute({ getParentRoute: () => root, path: '/users/log', component: AuthLogPage }),
   createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),
+  createRoute({ getParentRoute: () => root, path: '/penalta', component: PenaltyPage }),
 ];
 
 export const router = createRouter({
