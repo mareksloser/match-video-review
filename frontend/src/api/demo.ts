@@ -1,7 +1,7 @@
 import type { ApiClient } from './client';
 import { ApiError } from './client';
 import { createSeed, type DemoDb } from './demoSeed';
-import type { AdminSetting, AuthLogEntry, AuthLogFilter, Marker, PublicSettings, SettingKey, User, UserInput } from '@/lib/types';
+import type { AdminSetting, AuthLogEntry, AuthLogFilter, Marker, PublicSettings, SettingKey, User } from '@/lib/types';
 import { DEFAULT_SETTINGS, SETTING_META } from '@/lib/settings';
 
 const STORAGE_KEY = 'mvr-demo-v4';
@@ -108,19 +108,21 @@ export class DemoApiClient implements ApiClient {
     });
   }
 
-  async login(email: string, password: string) {
-    const normalized = email.trim().toLowerCase();
-    const known = this.db.users.find((x) => x.email === normalized);
-    const u = known && known.password === password ? known : null;
-    if (!u) {
-      this.log('login_failed', { id: known?.id ?? null, name: known?.name ?? null, email: normalized }, known ? 'Špatné heslo' : 'Neznámý e-mail');
-      this.persist();
-      throw new ApiError('Nesprávný e-mail nebo heslo.', 401);
-    }
+  /** The demo has no club login: the sign-in page offers demo accounts instead. */
+  async signIn({ demoEmail }: { returnTo?: string; demoEmail?: string } = {}) {
+    const email = (demoEmail ?? '').trim().toLowerCase();
+    const u = this.db.users.find((x) => x.email === email);
+    if (!u) throw new ApiError('Ukázkový účet neexistuje.', 404);
     this.log('login_success', u, null);
     this.persist();
     this.setUser(u.id);
-    return { user: this.user!, token: `demo-${u.id}` };
+    return this.user;
+  }
+  async completeSignIn(): Promise<never> {
+    throw new ApiError('Ukázka nepoužívá přihlášení klubovým účtem.', 400);
+  }
+  async accountAdminUrl() {
+    return null;
   }
   async logout() {
     this.setUser(null);
@@ -298,62 +300,6 @@ export class DemoApiClient implements ApiClient {
     return this.db.users
       .map(({ password: _p, ...u }) => ({ ...u, lastLoginAt: last(u.id) }))
       .sort((a, b) => a.name.localeCompare(b.name, 'cs'));
-  }
-
-  /** Same rules as backend UserData + UserService. */
-  private validateUser(input: UserInput, exceptId: number | null, passwordRequired: boolean) {
-    const fields: Record<string, string> = {};
-    const email = input.email.trim().toLowerCase();
-    if (!input.name.trim()) fields.name = 'Vyplňte jméno (max. 100 znaků).';
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fields.email = 'Zadejte platný e-mail.';
-    else if (this.db.users.some((u) => u.email === email && u.id !== exceptId)) fields.email = 'Tento e-mail už používá jiný účet.';
-    if (input.role === 'player' && !input.teamCategoryId) fields.teamCategoryId = 'Hráč musí mít tým, jinak uvidí jen veřejná videa.';
-    if ((passwordRequired || input.password) && input.password.length < 8) fields.password = 'Heslo musí mít alespoň 8 znaků.';
-    if (Object.keys(fields).length) throw new ApiError('Formulář obsahuje chyby.', 422, fields);
-    return { name: input.name.trim(), email, role: input.role, teamCategoryId: input.role === 'player' ? input.teamCategoryId : null };
-  }
-
-  async createUser(input: UserInput) {
-    this.requireAdmin();
-    const user = { ...this.validateUser(input, null, true), id: this.nextId(), password: input.password };
-    this.db.users.push(user);
-    this.log('user_created', user, `${user.name}, ${user.role}`);
-    this.persist();
-    const { password: _p, ...rest } = user;
-    return rest;
-  }
-
-  async updateUser(id: number, input: UserInput) {
-    this.requireAdmin();
-    const user = this.db.users.find((u) => u.id === id);
-    if (!user) throw new ApiError('Uživatel neexistuje.', 404);
-    const data = this.validateUser(input, id, false);
-    if (user.role === 'admin' && data.role !== 'admin') {
-      if (id === this.userId) throw new ApiError('Formulář obsahuje chyby.', 422, { role: 'Sami sobě roli trenéra odebrat nemůžete.' });
-      if (this.db.users.filter((u) => u.role === 'admin').length <= 1) throw new ApiError('Formulář obsahuje chyby.', 422, { role: 'Musí zůstat alespoň jeden trenér.' });
-    }
-    const changed = (['name', 'email', 'role', 'teamCategoryId'] as const)
-      .filter((k) => String(user[k] ?? '–') !== String(data[k] ?? '–'))
-      .map((k) => `${k}: ${user[k] ?? '–'} → ${data[k] ?? '–'}`)
-      .join('; ');
-    Object.assign(user, data, input.password ? { password: input.password } : {});
-    if (changed) this.log('user_updated', user, changed);
-    if (input.password) this.log('password_changed', user, null);
-    this.persist();
-    const { password: _p, ...rest } = user;
-    return rest;
-  }
-
-  async deleteUser(id: number) {
-    this.requireAdmin();
-    const user = this.db.users.find((u) => u.id === id);
-    if (!user) throw new ApiError('Uživatel neexistuje.', 404);
-    if (id === this.userId) throw new ApiError('Vlastní účet smazat nemůžete.', 403);
-    if (user.role === 'admin' && this.db.users.filter((u) => u.role === 'admin').length <= 1) throw new ApiError('Musí zůstat alespoň jeden trenér.', 403);
-    this.db.users = this.db.users.filter((u) => u.id !== id);
-    this.db.views = this.db.views.filter((v) => v.userId !== id);
-    this.log('user_deleted', user, `${user.name}, ${user.role}`);
-    this.persist();
   }
 
   async authLog({ type, q, before }: { type: AuthLogFilter; q: string; before: number | null }) {

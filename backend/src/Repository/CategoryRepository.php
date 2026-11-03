@@ -12,4 +12,7 @@ interface CategoryRepository
     public function all(): array;
 
     public function exists(int $id): bool;
+
+    /** Team category mapped to an IdP team slug (team_categories.slug), or null. */
+    public function idBySlug(string $slug): ?int;
 }

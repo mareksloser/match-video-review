@@ -1,7 +1,8 @@
 import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
-import { BookOpen, ChartColumn, Film, LogIn, Settings, Users, Wrench } from 'lucide-react';
+import { BookOpen, ChartColumn, Film, LogIn, Settings, ShieldAlert, Users, Wrench } from 'lucide-react';
 import { Crest } from '@/components/Crest';
-import { useMe, useSettingsValues } from './queries';
+import { useLogout, useMe, useSettingsValues } from './queries';
+import { ApiError } from '@/api/client';
 import { MaintenanceScreen } from './MaintenanceScreen';
 import { SettingsEffects } from './SettingsEffects';
 import { UserMenu } from './UserMenu';
@@ -13,14 +14,17 @@ const navLink =
   'relative flex h-14 items-center gap-2 px-1 text-[0.95rem] text-muted transition-colors hover:text-ink data-[status=active]:text-ink data-[status=active]:after:absolute data-[status=active]:after:inset-x-0 data-[status=active]:after:bottom-0 data-[status=active]:after:h-0.5 data-[status=active]:after:bg-pitch';
 
 export function Layout() {
-  const { data: me } = useMe();
+  const { data: me, error: meError } = useMe();
+  const logout = useLogout();
   const settings = useSettingsValues();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   // Easter egg: five quick clicks on the crest open the penalty game.
   const crestClick = useSecretClicks(() => void navigate({ to: '/penalta' }));
-  // Maintenance: everyone except coaches sees the notice; /login stays reachable for coaches.
-  const blocked = settings.maintenanceEnabled && me?.role !== 'admin' && pathname !== '/login';
+  // Signed in to the club, but the IdP gives this account no MVR role.
+  const noAccess = meError instanceof ApiError && meError.status === 403 ? meError.message : null;
+  // Maintenance: everyone except coaches sees the notice; sign-in pages stay reachable for coaches.
+  const blocked = settings.maintenanceEnabled && me?.role !== 'admin' && pathname !== '/login' && pathname !== '/auth/callback';
 
   return (
     <div className="flex min-h-screen">
@@ -62,6 +66,10 @@ export function Layout() {
             </nav>
             {me ? (
               <UserMenu user={me} />
+            ) : noAccess ? (
+              <button type="button" className={cn(navLink, 'text-ink')} disabled={logout.isPending} onClick={() => logout.mutate()}>
+                <LogIn className="h-4 w-4" /> Odhlásit
+              </button>
             ) : (
               <Link to="/login" className={cn(navLink, 'text-ink')}>
                 <LogIn className="h-4 w-4" /> Přihlásit
@@ -73,6 +81,12 @@ export function Layout() {
               <Wrench className="h-4 w-4 text-card-yellow" />
               Režim údržby je zapnutý. Hráči a náhled vidí jen zprávu o údržbě.
               <Link to="/settings" className="ml-auto font-medium underline-offset-2 hover:underline">Nastavení</Link>
+            </div>
+          )}
+          {noAccess && (
+            <div className="flex items-center gap-2 border-t border-card-red/40 bg-card-red/10 px-4 py-1.5 text-sm md:px-8" role="status">
+              <ShieldAlert className="h-4 w-4 shrink-0 text-card-red" />
+              {noAccess}
             </div>
           )}
           {isDemo && (

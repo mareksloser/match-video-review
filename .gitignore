@@ -9,3 +9,4 @@ backend/vendor/
 backend/public/assets/
 backend/public/index.html
 backend/public/videos/
+backend/tmp/

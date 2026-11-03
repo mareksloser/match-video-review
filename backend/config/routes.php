@@ -13,6 +13,7 @@ use Mvr\Controller\UserController;
 use Mvr\Http\Router;
 
 return static fn (Router $r): Router => $r
+    ->add('GET', '/auth/config', [AuthController::class, 'config'])
     ->add('POST', '/auth/login', [AuthController::class, 'login'])
     ->add('GET', '/auth/me', [AuthController::class, 'me'])
 
@@ -43,7 +44,4 @@ return static fn (Router $r): Router => $r
     ->add('GET', '/settings/public', [SettingsController::class, 'publicValues'])
     ->add('GET', '/settings', [SettingsController::class, 'index'])
     ->add('PUT', '/settings', [SettingsController::class, 'update'])
-    ->add('GET', '/users', [UserController::class, 'index'])
-    ->add('POST', '/users', [UserController::class, 'store'])
-    ->add('PUT', '/users/{id}', [UserController::class, 'update'])
-    ->add('DELETE', '/users/{id}', [UserController::class, 'destroy']);
+    ->add('GET', '/users', [UserController::class, 'index']);

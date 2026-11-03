@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './ApiContext';
-import type { AuthLogFilter, Drawing, Marker, MarkerInput, MatchInput, Rule, SettingKey, User, UserInput } from '@/lib/types';
+import type { AuthLogFilter, Drawing, Marker, MarkerInput, MatchInput, Rule, SettingKey } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/settings';
 
 export const keys = {
@@ -21,17 +21,25 @@ export function useMe() {
   return useQuery({ queryKey: keys.me, queryFn: () => api.me(), staleTime: Infinity });
 }
 
-export function useLogin() {
+/** Starts the club login (HTTP redirects away; the demo signs in right away and returns the user). */
+export function useSignIn() {
   const api = useApi();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) => api.login(email, password),
-    onSuccess: (s) => {
-      qc.setQueryData(keys.me, s.user);
+    mutationFn: (options: { returnTo?: string; demoEmail?: string }) => api.signIn(options),
+    onSuccess: (user) => {
+      if (!user) return;
+      qc.setQueryData(keys.me, user);
       void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'me' });
     },
   });
 }
+
+/** Link to the club IdP admin, where accounts, roles and teams are managed. */
+export const useAccountAdminUrl = () => {
+  const api = useApi();
+  return useQuery({ queryKey: ['accountAdminUrl'], queryFn: () => api.accountAdminUrl(), staleTime: Infinity });
+};
 
 export function useLogout() {
   const api = useApi();
@@ -206,28 +214,6 @@ export const useUsers = () => {
   const api = useApi();
   return useQuery({ queryKey: keys.users, queryFn: () => api.users() });
 };
-
-/** Create / update / delete users. Editing yourself refreshes the header too. */
-export function useUserMutations() {
-  const api = useApi();
-  const qc = useQueryClient();
-  const refresh = () => {
-    void qc.invalidateQueries({ queryKey: keys.users });
-    void qc.invalidateQueries({ queryKey: ['analytics'] });
-    void qc.invalidateQueries({ queryKey: ['authLog'] });
-  };
-  return {
-    create: useMutation({ mutationFn: (input: UserInput) => api.createUser(input), onSuccess: refresh }),
-    update: useMutation({
-      mutationFn: ({ id, input }: { id: number; input: UserInput }) => api.updateUser(id, input),
-      onSuccess: (user) => {
-        refresh();
-        if (qc.getQueryData<User | null>(keys.me)?.id === user.id) qc.setQueryData(keys.me, user);
-      },
-    }),
-    remove: useMutation({ mutationFn: (id: number) => api.deleteUser(id), onSuccess: refresh }),
-  };
-}
 
 export function useCreateRule() {
   const api = useApi();

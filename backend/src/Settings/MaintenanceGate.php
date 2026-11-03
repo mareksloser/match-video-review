@@ -10,11 +10,11 @@ use Mvr\Http\Response;
 
 /**
  * In maintenance mode every API call returns 503 — except for coaches, and except the few
- * endpoints the app needs to show the maintenance screen and let a coach log in.
+ * endpoints the app needs to show the maintenance screen and let a coach sign in.
  */
 final class MaintenanceGate
 {
-    private const ALWAYS_OPEN = ['/auth/login', '/auth/me', '/settings/public'];
+    private const ALWAYS_OPEN = ['/auth/config', '/auth/login', '/auth/me', '/settings/public'];
 
     public function __construct(
         private readonly SettingsService $settings,

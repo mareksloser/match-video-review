@@ -11,11 +11,9 @@ import type {
   MatchInput,
   PublicSettings,
   Rule,
-  Session,
   SettingKey,
   TeamCategory,
   User,
-  UserInput,
 } from '@/lib/types';
 
 /**
@@ -23,9 +21,16 @@ import type {
  * `DemoApiClient` keeps everything in memory — and tests can pass their own fake.
  */
 export interface ApiClient {
-  login(email: string, password: string): Promise<Session>;
+  /** HTTP: redirects to the club login and resolves with null. Demo: signs in as `demoEmail` right away. */
+  signIn(options?: { returnTo?: string; demoEmail?: string }): Promise<User | null>;
+  /** After the redirect back from the club login: records the sign-in, returns the user and where to continue. */
+  completeSignIn(): Promise<{ user: User; returnTo: string | null }>;
+  /** Signs out here and at the club login. */
   logout(): Promise<void>;
+  /** null = anonymous. Throws ApiError 403 for a club account without an MVR role. */
   me(): Promise<User | null>;
+  /** Where accounts, roles and teams are managed (club IdP admin); null in the demo. */
+  accountAdminUrl(): Promise<string | null>;
 
   categories(): Promise<TeamCategory[]>;
   matches(filter?: { categoryId?: number | null }): Promise<Match[]>;
@@ -56,9 +61,6 @@ export interface ApiClient {
   /** null resets a key to its default. */
   updateSettings(values: Partial<Record<SettingKey, unknown>>): Promise<AdminSetting[]>;
   authLog(params: { type: AuthLogFilter; q: string; before: number | null }): Promise<AuthLogPage>;
-  createUser(input: UserInput): Promise<User>;
-  updateUser(id: number, input: UserInput): Promise<User>;
-  deleteUser(id: number): Promise<void>;
 
   /** Stores a video file (local/FTP storage) and returns its playable URL. */
   uploadVideo(file: File): Promise<{ url: string }>;

@@ -10,6 +10,7 @@ SET NAMES utf8mb4;
 
 CREATE TABLE `team_categories` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `slug` VARCHAR(50) NULL UNIQUE COMMENT '▲ team slug in the club IdP, e.g. u11',
   `name` VARCHAR(100) NOT NULL COMMENT 'Např. A-tým, U19, Ženy',
   `description` TEXT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -17,9 +18,9 @@ CREATE TABLE `team_categories` (
 
 CREATE TABLE `users` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `sub` VARCHAR(64) NULL UNIQUE COMMENT '▲ subject (user id) from the club IdP',
   `name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(150) NOT NULL UNIQUE,
-  `password` VARCHAR(255) NOT NULL,
   `role` ENUM('admin', 'player', 'viewer') NOT NULL DEFAULT 'player' COMMENT '▲ viewer = read-only, all teams',
   `team_category_id` BIGINT UNSIGNED NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

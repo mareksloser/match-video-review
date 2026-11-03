@@ -11,6 +11,7 @@ import { MatchReviewPage } from '@/features/match/MatchReviewPage';
 import { PlaybookPage } from '@/features/playbook/PlaybookPage';
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { AuthCallbackPage } from '@/features/auth/AuthCallbackPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { AuthLogPage } from '@/features/authlog/AuthLogPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -41,6 +42,7 @@ const routes = [
   createRoute({ getParentRoute: () => root, path: '/playbook', component: PlaybookPage }),
   createRoute({ getParentRoute: () => root, path: '/analytics', component: AnalyticsPage }),
   createRoute({ getParentRoute: () => root, path: '/login', component: LoginPage, validateSearch: loginSearch }),
+  createRoute({ getParentRoute: () => root, path: '/auth/callback', component: AuthCallbackPage }),
   createRoute({ getParentRoute: () => root, path: '/users', component: UsersPage }),
   createRoute({ getParentRoute: () => root, path: '/users/log', component: AuthLogPage }),
   createRoute({ getParentRoute: () => root, path: '/settings', component: SettingsPage }),

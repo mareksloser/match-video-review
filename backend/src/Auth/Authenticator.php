@@ -4,52 +4,76 @@ declare(strict_types=1);
 
 namespace Mvr\Auth;
 
+use Mvr\Auth\Oidc\TokenVerifier;
 use Mvr\Domain\User;
 use Mvr\Http\HttpException;
 use Mvr\Http\Request;
-use Mvr\Repository\UserRepository;
 
+/**
+ * Resolves the bearer token (an access token from the club IdP) to a local user.
+ * Passwords no longer exist in MVR: signing in happens at the IdP, MVR only verifies tokens.
+ */
 final class Authenticator
 {
+    public const NO_ACCESS = 'Váš klubový účet zatím nemá přístup k videorozborům. Požádejte trenéra o přidělení role.';
+
+    /** Per-request memo: the gate and the controller both ask, but the token is verified once. */
+    private array $resolved = [];
+
     public function __construct(
-        private readonly UserRepository $users,
-        private readonly TokenService $tokens,
+        private readonly TokenVerifier $verifier,
+        private readonly ClaimsMapper $mapper,
+        private readonly UserProvisioner $provisioner,
         private readonly AuthLog $log,
     ) {
     }
 
-    /** @return array{user: User, token: string} */
-    public function login(string $email, string $password, ClientInfo $client): array
-    {
-        $email = mb_strtolower(trim($email));
-        $this->log->assertNotThrottled($email, $client);
-
-        $user = $email !== '' ? $this->users->findByEmail($email) : null;
-        if ($user === null || !password_verify($password, $user->passwordHash)) {
-            // The visitor always gets the same message; only the log tells the two cases apart.
-            $this->log->loginFailed($email, $user, $user === null ? 'Neznámý e-mail' : 'Špatné heslo', $client);
-            throw HttpException::unauthorized('Nesprávný e-mail nebo heslo.');
-        }
-        $this->log->loginSucceeded($user, $client);
-        return ['user' => $user, 'token' => $this->tokens->issue($user->id, self::stamp($user))];
-    }
-
-    /** The signed-in user, or null for anonymous visitors. Invalid tokens count as anonymous. */
+    /** The signed-in user, or null for anonymous visitors. Invalid tokens and users without an MVR role count as anonymous. */
     public function user(Request $request): ?User
     {
-        $token = $request->bearerToken();
-        $claims = $token !== null ? $this->tokens->verify($token) : null;
-        if ($claims === null) {
-            return null;
-        }
-        $user = $this->users->find($claims['uid']);
-        // Deleted user, or password changed since the token was issued → treat as anonymous.
-        return $user !== null && hash_equals(self::stamp($user), $claims['stamp']) ? $user : null;
+        return $this->resolve($request)['user'];
     }
 
-    /** Short fingerprint of the password hash (the hash itself never leaves the server). */
-    private static function stamp(User $user): string
+    /** Called once after the redirect back from the IdP: records the login and returns the user. */
+    public function signIn(Request $request, ClientInfo $client): User
     {
-        return substr(hash('sha256', $user->passwordHash), 0, 16);
+        $user = $this->requireUser($request);
+        $this->log->loginSucceeded($user, $client);
+
+        return $user;
+    }
+
+    /** Like user(), but explains why there is none: 401 = no valid token, 403 = no MVR role. */
+    public function requireUser(Request $request): User
+    {
+        ['identity' => $identity, 'user' => $user] = $this->resolve($request);
+        if ($identity === null) {
+            throw HttpException::unauthorized('Přihlášení vypršelo, přihlaste se prosím znovu.');
+        }
+
+        return $user ?? throw HttpException::forbidden(self::NO_ACCESS);
+    }
+
+    /** @return array{identity: ?ClubIdentity, user: ?User} */
+    private function resolve(Request $request): array
+    {
+        $token = $request->bearerToken();
+        if ($token === null) {
+            return ['identity' => null, 'user' => null];
+        }
+
+        return $this->resolved[$token] ??= $this->resolveToken($token);
+    }
+
+    /** @return array{identity: ?ClubIdentity, user: ?User} */
+    private function resolveToken(string $token): array
+    {
+        $claims = $this->verifier->verify($token);
+        if ($claims === null) {
+            return ['identity' => null, 'user' => null];
+        }
+        $identity = $this->mapper->map($claims);
+
+        return ['identity' => $identity, 'user' => $identity->hasAccess() ? $this->provisioner->resolve($identity) : null];
     }
 }

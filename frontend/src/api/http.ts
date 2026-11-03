@@ -1,40 +1,18 @@
 import type { ApiClient } from './client';
 import { ApiError } from './client';
-import type { Session } from '@/lib/types';
+import type { AuthSession } from '@/auth/session';
+import type { User } from '@/lib/types';
 
-export interface TokenStore {
-  get(): string | null;
-  set(token: string | null): void;
-}
-
-export const localTokenStore: TokenStore = {
-  get: () => {
-    try {
-      return localStorage.getItem('mvr-token');
-    } catch {
-      return null;
-    }
-  },
-  set: (token) => {
-    try {
-      if (token) localStorage.setItem('mvr-token', token);
-      else localStorage.removeItem('mvr-token');
-    } catch {
-      /* storage unavailable */
-    }
-  },
-};
-
-/** REST client for the PHP backend (see backend/README.md for the endpoint list). */
+/** REST client for the PHP backend (see README for the endpoint list). Tokens come from the club IdP. */
 export class HttpApiClient implements ApiClient {
   constructor(
     private readonly baseUrl: string,
-    private readonly tokens: TokenStore = localTokenStore,
+    private readonly auth: AuthSession,
     private readonly fetchImpl: typeof fetch = (...a) => fetch(...a),
   ) {}
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const token = this.tokens.get();
+    const token = await this.auth.accessToken();
     const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
       method,
       headers: {
@@ -50,20 +28,41 @@ export class HttpApiClient implements ApiClient {
     return data as T;
   }
 
-  async login(email: string, password: string) {
-    const session = await this.request<Session>('POST', '/auth/login', { email, password });
-    this.tokens.set(session.token);
-    return session;
+  async signIn({ returnTo }: { returnTo?: string; demoEmail?: string } = {}) {
+    await this.auth.signIn(returnTo);
+    return null; // the browser is on its way to the club login
+  }
+  async completeSignIn() {
+    const returnTo = await this.auth.completeSignIn();
+    try {
+      const { user } = await this.request<{ user: User }>('POST', '/auth/login');
+      return { user, returnTo };
+    } catch (e) {
+      // 401 = the backend doesn't accept the token (wrong issuer/client config): don't keep it.
+      // 403 = signed in to the club but without an MVR role: keep it, so the user can sign out properly.
+      if (e instanceof ApiError && e.status === 401) await this.auth.forget();
+      throw e;
+    }
   }
   async logout() {
-    this.tokens.set(null);
+    await this.auth.signOut();
   }
   async me() {
-    if (!this.tokens.get()) return null;
+    if (!(await this.auth.accessToken())) return null;
     try {
-      return await this.request<Session['user']>('GET', '/auth/me');
+      return await this.request<User>('GET', '/auth/me');
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        await this.auth.forget();
+        return null;
+      }
+      throw e; // 403 (no MVR role) is shown to the user
+    }
+  }
+  async accountAdminUrl() {
+    try {
+      return `${(await this.auth.config()).issuer}/admin`;
     } catch {
-      this.tokens.set(null);
       return null;
     }
   }
@@ -90,7 +89,7 @@ export class HttpApiClient implements ApiClient {
   deleteRule = (id: number) => this.request<void>('DELETE', `/rules/${id}`);
 
   async uploadVideo(file: File) {
-    const token = this.tokens.get();
+    const token = await this.auth.accessToken();
     const body = new FormData();
     body.append('video', file);
     const res = await this.fetchImpl(`${this.baseUrl}/uploads`, {
@@ -115,9 +114,6 @@ export class HttpApiClient implements ApiClient {
     const qs = params.toString();
     return this.request('GET', `/auth-log${qs ? `?${qs}` : ''}`);
   };
-  createUser: ApiClient['createUser'] = (input) => this.request('POST', '/users', input);
-  updateUser: ApiClient['updateUser'] = (id, input) => this.request('PUT', `/users/${id}`, input);
-  deleteUser = (id: number) => this.request<void>('DELETE', `/users/${id}`);
 
   analytics: ApiClient['analytics'] = (matchId) => this.request('GET', `/matches/${matchId}/analytics`);
 }

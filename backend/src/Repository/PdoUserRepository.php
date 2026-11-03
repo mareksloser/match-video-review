@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mvr\Repository;
 
+use Mvr\Auth\ClubIdentity;
 use Mvr\Domain\Role;
 use Mvr\Domain\User;
-use Mvr\Domain\UserData;
 
 final class PdoUserRepository implements UserRepository
 {
@@ -24,6 +24,11 @@ final class PdoUserRepository implements UserRepository
         return $this->one('SELECT * FROM users WHERE email = ?', [$email]);
     }
 
+    public function findBySub(string $sub): ?User
+    {
+        return $this->one('SELECT * FROM users WHERE sub = ?', [$sub]);
+    }
+
     public function playersInCategory(int $categoryId): array
     {
         $st = $this->pdo->prepare("SELECT * FROM users WHERE role = 'player' AND team_category_id = ? ORDER BY name");
@@ -36,32 +41,27 @@ final class PdoUserRepository implements UserRepository
         return array_map($this->map(...), $this->pdo->query('SELECT * FROM users ORDER BY name, id')->fetchAll());
     }
 
-    public function countAdmins(): int
+    public function createFromIdentity(ClubIdentity $identity, ?int $teamCategoryId): int
     {
-        return (int) $this->pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
-    }
-
-    public function create(UserData $d, string $passwordHash): int
-    {
-        $this->pdo->prepare('INSERT INTO users (name, email, password, role, team_category_id) VALUES (?, ?, ?, ?, ?)')
-            ->execute([$d->name, $d->email, $passwordHash, $d->role->value, $d->teamCategoryId]);
+        $this->pdo->prepare('INSERT INTO users (sub, name, email, role, team_category_id) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$identity->sub, $identity->name, $identity->email, self::role($identity)->value, $teamCategoryId]);
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function update(int $id, UserData $d, ?string $passwordHash): void
+    public function updateFromIdentity(int $id, ClubIdentity $identity, ?int $teamCategoryId, bool $updateEmail): void
     {
-        $sql = 'UPDATE users SET name = ?, email = ?, role = ?, team_category_id = ?' . ($passwordHash !== null ? ', password = ?' : '') . ' WHERE id = ?';
-        $params = [$d->name, $d->email, $d->role->value, $d->teamCategoryId];
-        if ($passwordHash !== null) {
-            $params[] = $passwordHash;
+        $sql = 'UPDATE users SET sub = ?, name = ?, role = ?, team_category_id = ?' . ($updateEmail ? ', email = ?' : '') . ' WHERE id = ?';
+        $params = [$identity->sub, $identity->name, self::role($identity)->value, $teamCategoryId];
+        if ($updateEmail) {
+            $params[] = $identity->email;
         }
         $params[] = $id;
         $this->pdo->prepare($sql)->execute($params);
     }
 
-    public function delete(int $id): void
+    private static function role(ClubIdentity $identity): Role
     {
-        $this->pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
+        return $identity->role ?? throw new \LogicException('Identity without an MVR role cannot be stored.');
     }
 
     /** @param list<mixed> $params */
@@ -82,7 +82,7 @@ final class PdoUserRepository implements UserRepository
             $r['email'],
             Role::from($r['role']),
             $r['team_category_id'] !== null ? (int) $r['team_category_id'] : null,
-            $r['password'],
+            $r['sub'] ?? null,
         );
     }
 }

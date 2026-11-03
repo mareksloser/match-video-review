@@ -12,7 +12,8 @@ final class User
         public readonly string $email,
         public readonly Role $role,
         public readonly ?int $teamCategoryId,
-        public readonly string $passwordHash = '',
+        /** Subject from the club IdP; null for accounts not yet linked (created before SSO). */
+        public readonly ?string $sub = null,
     ) {
     }
 

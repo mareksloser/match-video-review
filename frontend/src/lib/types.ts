@@ -71,15 +71,6 @@ export interface AdminSetting {
   updatedBy: string | null;
 }
 
-export interface UserInput {
-  name: string;
-  email: string;
-  role: Role;
-  teamCategoryId: number | null;
-  /** Required when creating; empty when editing keeps the current password. */
-  password: string;
-}
-
 export interface TeamCategory {
   id: number;
   name: string;
@@ -134,11 +125,6 @@ export interface Rule {
   title: string;
   body: string;
   area: string; // e.g. "Presink", "Standardky"
-}
-
-export interface Session {
-  user: User;
-  token: string;
 }
 
 /* ---- Drawing model (normalized 0..1 coordinates, resolution independent) ---- */

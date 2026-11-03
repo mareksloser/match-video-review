@@ -5,7 +5,9 @@ declare(strict_types=1);
 use Mvr\Auth\AccessPolicy;
 use Mvr\Auth\AuthLog;
 use Mvr\Auth\Authenticator;
-use Mvr\Auth\TokenService;
+use Mvr\Auth\ClaimsMapper;
+use Mvr\Auth\Oidc;
+use Mvr\Auth\UserProvisioner;
 use Mvr\Controller;
 use Mvr\Config\Env;
 use Mvr\Domain\DrawingValidator;
@@ -54,10 +56,23 @@ return static function (Container $c): void {
         ->register(new Video\FileSource($c->get(Storage::class))));
 
     // Auth
-    $c->set(TokenService::class, fn (Container $c) => new TokenService(
-        Env::get('APP_SECRET'),
+    // Sign-in happens at the club IdP (OIDC); MVR only verifies its access tokens.
+    $c->set(Oidc\JwksProvider::class, fn (Container $c) => new Oidc\HttpJwksProvider(
+        rtrim(Env::get('OIDC_ISSUER'), '/') . '/.well-known/jwks.json',
+        Env::path('OIDC_JWKS_CACHE', dirname(__DIR__), 'tmp/cache/jwks.json'),
         $c->get(Clock::class),
-        (int) Env::get('TOKEN_TTL', '1209600'),
+    ));
+    $c->set(Oidc\TokenVerifier::class, fn (Container $c) => new Oidc\TokenVerifier(
+        $c->get(Oidc\JwksProvider::class),
+        $c->get(Clock::class),
+        Env::get('OIDC_ISSUER'),
+        Env::get('OIDC_CLIENT_ID', 'mvr-web'),
+    ));
+    $c->set(ClaimsMapper::class, fn () => new ClaimsMapper());
+    $c->set(UserProvisioner::class, fn (Container $c) => new UserProvisioner(
+        $c->get(Repository\UserRepository::class),
+        $c->get(Repository\CategoryRepository::class),
+        $c->get(AuthLog::class),
     ));
     $c->set(Settings\SettingsRegistry::class, fn () => new Settings\SettingsRegistry());
     $c->set(Settings\SettingsRepository::class, fn (Container $c) => new Settings\PdoSettingsRepository($c->get(\PDO::class)));
@@ -74,13 +89,12 @@ return static function (Container $c): void {
     $c->set(AuthLog::class, fn (Container $c) => new AuthLog(
         $c->get(Repository\AuthLogRepository::class),
         $c->get(Clock::class),
-        (int) Env::get('LOGIN_MAX_FAILURES', '10'),
-        (int) Env::get('LOGIN_WINDOW_MINUTES', '15'),
         (int) Env::get('AUTH_LOG_RETENTION_DAYS', '180'),
     ));
     $c->set(Authenticator::class, fn (Container $c) => new Authenticator(
-        $c->get(Repository\UserRepository::class),
-        $c->get(TokenService::class),
+        $c->get(Oidc\TokenVerifier::class),
+        $c->get(ClaimsMapper::class),
+        $c->get(UserProvisioner::class),
         $c->get(AuthLog::class),
     ));
 
@@ -108,9 +122,7 @@ return static function (Container $c): void {
     ));
     $c->set(Service\UserService::class, fn (Container $c) => new Service\UserService(
         $c->get(Repository\UserRepository::class),
-        $c->get(Repository\CategoryRepository::class),
         $c->get(AccessPolicy::class),
-        $c->get(AuthLog::class),
     ));
     $c->set(Service\VideoUploadService::class, fn (Container $c) => new Service\VideoUploadService(
         $c->get(Storage::class),
@@ -119,7 +131,11 @@ return static function (Container $c): void {
     ));
 
     // Controllers
-    $c->set(Controller\AuthController::class, fn (Container $c) => new Controller\AuthController($c->get(Authenticator::class)));
+    $c->set(Controller\AuthController::class, fn (Container $c) => new Controller\AuthController(
+        $c->get(Authenticator::class),
+        Env::get('OIDC_ISSUER'),
+        Env::get('OIDC_CLIENT_ID', 'mvr-web'),
+    ));
     $c->set(Controller\MatchController::class, fn (Container $c) => new Controller\MatchController(
         $c->get(Authenticator::class),
         $c->get(Service\MatchService::class),

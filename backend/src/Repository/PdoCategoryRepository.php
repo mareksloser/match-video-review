@@ -24,4 +24,13 @@ final class PdoCategoryRepository implements CategoryRepository
         $st->execute([$id]);
         return (bool) $st->fetchColumn();
     }
+
+    public function idBySlug(string $slug): ?int
+    {
+        $st = $this->pdo->prepare('SELECT id FROM team_categories WHERE slug = ?');
+        $st->execute([$slug]);
+        $id = $st->fetchColumn();
+
+        return $id === false ? null : (int) $id;
+    }
 }
