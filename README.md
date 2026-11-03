@@ -1,131 +1,131 @@
 # Match Video Review (MVR)
 
-Videorozbory zápasů pro SK Baník Libušín: markery v čase, taktické kresby přímo do videa,
-evidence „probráno s týmem“ a přehled, kdo z hráčů si rozbor prošel.
+Match video analysis for SK Baník Libušín: timed markers, tactical drawings directly on the video,
+"discussed with the team" tracking and an overview of which players went through the review.
 
 ```
-frontend/   React 18 + TypeScript, TanStack Router/Query, Tailwind, komponenty ve stylu shadcn
-backend/    PHP 8.2+, bez frameworku (PSR-4), PDO + MySQL 8 / MariaDB
+frontend/   React 18 + TypeScript, TanStack Router/Query, Tailwind, shadcn-style components
+backend/    PHP 8.2+, no framework (PSR-4), PDO + MySQL 8 / MariaDB
 ```
 
-## Rychlý start (lokálně)
+## Quick start (local)
 
 ```bash
-# 1) databáze
+# 1) database
 mysql -uroot -e "CREATE DATABASE mvr CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 mysql -uroot mvr < backend/database/schema.sql
 mysql -uroot mvr < backend/database/seed.sql
 
 # 2) backend
 cd backend
-cp .env.example .env            # vyplňte DB_*, APP_SECRET (min. 16 znaků)
+cp .env.example .env            # fill in DB_*, APP_SECRET (min. 16 characters)
 php bin/create-user.php "Petr Hájek" trener@banik.cz heslo admin
-php bin/create-user.php "Jakub Svoboda" hrac@banik.cz heslo player 1   # 1 = id kategorie A-tým
-php bin/create-user.php "Náhled" view@banik.cz heslo viewer            # vidí všechny týmy, nic nemění
+php bin/create-user.php "Jakub Svoboda" hrac@banik.cz heslo player 1   # 1 = id of the A-tým category
+php bin/create-user.php "Náhled" view@banik.cz heslo viewer            # sees all teams, changes nothing
 ```
 
-Prvního trenéra je potřeba založit skriptem. Další účty pak trenér spravuje v aplikaci
-(profilové menu → **Uživatelé**): přidání, úprava, změna hesla a mazání. Aplikace nedovolí
-smazat ani degradovat vlastní účet a vždy ponechá alespoň jednoho trenéra.
-Po změně hesla se uživatel odhlásí na všech zařízeních (token je svázaný s heslem).
+The first coach has to be created with the script. Further accounts are managed by a coach in the app
+(profile menu → **Uživatelé**): add, edit, change password and delete. The app won't let you
+delete or demote your own account and always keeps at least one coach.
+After a password change the user is signed out on all devices (the token is bound to the password).
 
 ```bash
 php -S localhost:8080 -t public
 
-# 3) frontend (druhý terminál) — Vite proxuje /api na :8080
+# 3) frontend (second terminal) — Vite proxies /api to :8080
 cd frontend
 npm install
 npm run dev
 ```
 
-Ukázka bez backendu a bez videa: `npm run dev:demo` (data v prohlížeči, simulovaný záznam).
-`npm run build:demo` vyrobí jediný soubor `dist-demo/index.html`.
+Demo without a backend and without video: `npm run dev:demo` (data in the browser, simulated recording).
+`npm run build:demo` produces a single file `dist-demo/index.html`.
 
-## Nasazení
+## Deployment
 
-1. `cd frontend && npm run build` a obsah `frontend/dist/` zkopírujte do `backend/public/`.
-2. Webroot nasměrujte na `backend/public/`. Pro Apache je přiložen `.htaccess`
-   (přepis na `index.php` a předání hlavičky `Authorization`). Pro nginx:
+1. `cd frontend && npm run build` and copy the contents of `frontend/dist/` into `backend/public/`.
+2. Point the web root at `backend/public/`. An `.htaccess` is included for Apache
+   (rewrite to `index.php` and passing the `Authorization` header). For nginx:
    `try_files $uri /index.php?$query_string;`
-3. PHP rozšíření: `pdo_mysql`, `mbstring`, `fileinfo`, pro FTP úložiště `ftp`.
-4. Upload velkých videí: zvyšte `upload_max_filesize` a `post_max_size` (např. 4G)
-   a `max_execution_time`. Celé zápasy z VEO mají běžně jednotky GB.
+3. PHP extensions: `pdo_mysql`, `mbstring`, `fileinfo`, and `ftp` for FTP storage.
+4. Uploading large videos: raise `upload_max_filesize` and `post_max_size` (e.g. 4G)
+   and `max_execution_time`. Full VEO matches are commonly several GB.
 
-### Videa: na co si dát pozor
+### Videos: things to watch out for
 
-- **Server s videi musí podporovat HTTP Range** (Apache i nginx ho mají v základu).
-  Bez něj prohlížeč nemůže přetáčet a kliknutí na marker video nepřesune.
-  Vestavěný `php -S` Range neumí, takže při lokálním vývoji servírujte videa jinak
-  (např. `npx http-server public/videos -p 8090 --cors` a `STORAGE_PUBLIC_URL=http://localhost:8090`).
-- **Kódování:** MP4 s H.264 + AAC (nejširší podpora) nebo WebM/VP9.
-  Pro plynulé přehrávání z webu použijte `-movflags +faststart`.
-- **VEO** nedovoluje vložit svůj přehrávač do cizí stránky. Zápasy s odkazem na VEO
-  fungují tak, že marker otevře záznam na VEO přesně v čase (`#t=mm:ss`). Kreslení do obrazu
-  vyžaduje soubor: stáhněte záznam z VEO a nahrajte ho přes „Přidat zápas → Nahrát soubor“
-  (nebo ho dejte na FTP a zadejte cestu).
+- **The server hosting videos must support HTTP Range** (Apache and nginx do out of the box).
+  Without it the browser cannot seek and clicking a marker won't move the video.
+  The built-in `php -S` doesn't support Range, so serve videos differently during local development
+  (e.g. `npx http-server public/videos -p 8090 --cors` and `STORAGE_PUBLIC_URL=http://localhost:8090`).
+- **Encoding:** MP4 with H.264 + AAC (widest support) or WebM/VP9.
+  For smooth web playback use `-movflags +faststart`.
+- **VEO** doesn't allow embedding its player in other sites. Matches linking to VEO
+  work by a marker opening the recording on VEO at the exact time (`#t=mm:ss`). Drawing on the picture
+  requires a file: download the recording from VEO and upload it via "Přidat zápas → Nahrát soubor"
+  (or put it on FTP and enter the path).
 
 ## API
 
-Všechny odpovědi jsou JSON. Přihlášení vrací bearer token (HMAC podepsaný, bez tabulky session).
+All responses are JSON. Login returns a bearer token (HMAC-signed, no session table).
 
-| Metoda | Cesta | Kdo |
+| Method | Path | Who |
 |---|---|---|
-| POST | `/api/auth/login` | kdokoli |
-| GET | `/api/auth/me` | přihlášený |
-| GET | `/api/categories` | kdokoli |
-| GET | `/api/matches?category=ID` | kdokoli (anonym vidí jen veřejné) |
-| GET | `/api/matches/{id}` | podle viditelnosti |
-| POST / DELETE | `/api/matches`, `/api/matches/{id}` | trenér |
-| GET | `/api/matches/{id}/markers` | hráč týmu, trenér (ostatní dostanou `[]`) |
-| POST | `/api/matches/{id}/markers` | trenér |
-| PUT / DELETE | `/api/markers/{id}` | trenér |
-| PUT | `/api/markers/{id}/drawing` | trenér |
-| PUT | `/api/markers/{id}/review` | trenér |
-| POST | `/api/markers/{id}/view` | hráč týmu |
-| GET | `/api/matches/{id}/analytics` | trenér |
-| GET / POST | `/api/rules` | přihlášený / trenér |
-| POST | `/api/uploads` (multipart, pole `video`) | trenér |
+| POST | `/api/auth/login` | anyone |
+| GET | `/api/auth/me` | signed in |
+| GET | `/api/categories` | anyone |
+| GET | `/api/matches?category=ID` | anyone (anonymous sees public only) |
+| GET | `/api/matches/{id}` | by visibility |
+| POST / DELETE | `/api/matches`, `/api/matches/{id}` | coach |
+| GET | `/api/matches/{id}/markers` | team player, coach (others get `[]`) |
+| POST | `/api/matches/{id}/markers` | coach |
+| PUT / DELETE | `/api/markers/{id}` | coach |
+| PUT | `/api/markers/{id}/drawing` | coach |
+| PUT | `/api/markers/{id}/review` | coach |
+| POST | `/api/markers/{id}/view` | team player |
+| GET | `/api/matches/{id}/analytics` | coach |
+| GET / POST | `/api/rules` | signed in / coach |
+| POST | `/api/uploads` (multipart, field `video`) | coach |
 
-Chyby validace: `422 {"error": "...", "fields": {"pole": "zpráva"}}`.
-Pro načítání dat na klubový web nastavte `CORS_ORIGINS`.
+Validation errors: `422 {"error": "...", "fields": {"field": "message"}}`.
+To load data on the club website set `CORS_ORIGINS`.
 
-Čas markeru lze poslat jako sekundy, `"14:20"` nebo rovnou VEO odkaz `…/#t=14:20`.
+A marker time can be sent as seconds, `"14:20"` or directly as a VEO link `…/#t=14:20`.
 
-## Architektura a testovatelnost
+## Architecture and testability
 
-Testy zatím nejsou (dle zadání), kód je ale připravený tak, aby šly doplnit bez refaktoringu.
+There are no tests yet (per the brief), but the code is prepared so they can be added without refactoring.
 
 **Backend**
-- `Controller/` jen čte request a volá službu. Logika je v `Service/`, pravidla viditelnosti
-  v jediné čisté třídě `Auth/AccessPolicy`.
-- Repozitáře mají rozhraní (`Repository/*Repository.php`) a PDO implementace — v testech
-  stačí in-memory náhrada.
-- Veškeré skládání závislostí je v `config/services.php` (`Container::set` lze v testu přepsat).
-- Čas jde přes `Support/Clock`, takže tokeny a `reviewed_at` jdou testovat se zmrazeným časem.
-- Zdroje videa = Strategy: `Video/VideoSource` + `VideoSourceRegistry`
-  (`VeoSource`, `FileSource`, `YouTubeSource`). Vimeo/Hudl = nová třída + jeden `register()`.
-- Úložiště: `Storage/Storage` (`LocalStorage`, `FtpStorage`; S3 = dvě metody).
-- Čisté funkce bez I/O: `Video/TimeParser`, `Video/VeoUrlParser`, `Domain/DrawingValidator`.
+- `Controller/` only reads the request and calls a service. Logic lives in `Service/`, visibility rules
+  in a single pure class `Auth/AccessPolicy`.
+- Repositories have interfaces (`Repository/*Repository.php`) and PDO implementations — an in-memory
+  replacement is enough in tests.
+- All dependency wiring is in `config/services.php` (`Container::set` can be overridden in a test).
+- Time goes through `Support/Clock`, so tokens and `reviewed_at` can be tested with a frozen clock.
+- Video sources = Strategy: `Video/VideoSource` + `VideoSourceRegistry`
+  (`VeoSource`, `FileSource`, `YouTubeSource`). Vimeo/Hudl = a new class + one `register()`.
+- Storage: `Storage/Storage` (`LocalStorage`, `FtpStorage`; S3 = two methods).
+- Pure functions without I/O: `Video/TimeParser`, `Video/VeoUrlParser`, `Domain/DrawingValidator`.
 
 **Frontend**
-- `src/lib/time.ts` — čisté funkce (`parseTimeString`, `extractVeoTime`, `buildVeoUrl`…).
-- `src/video/` — `VideoEngine` rozhraní a adaptéry (`Html5Engine`, `VeoEngine`, `YouTubeEngine`,
-  `DemoEngine`) + registr. UI přehrávače neví, odkud video je.
-- `src/canvas/` — kreslení: čistá geometrie (`geometry.ts`), bezstavové vykreslení (`render.ts`)
-  a stavový automat editoru (`useDrawingEditor.ts`). Souřadnice jsou 0–1, kresba sedí na každé velikosti.
-- `src/api/` — rozhraní `ApiClient`, injektované přes React context. `HttpApiClient`
-  (s injektovatelným `fetch` a úložištěm tokenu) a `DemoApiClient` (in-memory, stejná pravidla přístupu).
+- `src/lib/time.ts` — pure functions (`parseTimeString`, `extractVeoTime`, `buildVeoUrl`…).
+- `src/video/` — `VideoEngine` interface and adapters (`Html5Engine`, `VeoEngine`, `YouTubeEngine`,
+  `DemoEngine`) + registry. The player UI doesn't know where the video comes from.
+- `src/canvas/` — drawing: pure geometry (`geometry.ts`), stateless rendering (`render.ts`)
+  and the editor state machine (`useDrawingEditor.ts`). Coordinates are 0–1, so a drawing fits any size.
+- `src/api/` — the `ApiClient` interface, injected via React context. `HttpApiClient`
+  (with injectable `fetch` and token storage) and `DemoApiClient` (in-memory, same access rules).
 
-## Změny schématu oproti zadání
+## Schema changes compared to the brief
 
-Označené `▲` v `backend/database/schema.sql`:
-- `matches.video_type` je `VARCHAR` místo `ENUM` → nový zdroj videa bez migrace.
-- `matches.is_public` → veřejná galerie.
-- Tabulka `rules` (playbook) + `markers.rule_id`; `rule_link` zůstává pro externí odkazy.
-- `markers.kind` → ikony na časové ose (taktika, gól, šance, faul, střídání).
-- `marker_reviews.marker_id` je `UNIQUE` → jeden příznak na marker, umožňuje upsert.
+Marked `▲` in `backend/database/schema.sql`:
+- `matches.video_type` is `VARCHAR` instead of `ENUM` → a new video source without a migration.
+- `matches.is_public` → public gallery.
+- `rules` table (playbook) + `markers.rule_id`; `rule_link` stays for external links.
+- `markers.kind` → icons on the timeline (tactic, goal, chance, foul, substitution).
+- `marker_reviews.marker_id` is `UNIQUE` → one flag per marker, enables upsert.
 
-## Co zatím není (návrhy ze zadání, bod 7)
+## Not done yet (suggestions from the brief, section 7)
 
-Export do PDF, komentáře hráčů pod markerem, srovnání dvou videí vedle sebe.
-Datový model i architektura s nimi počítají; jsou to další samostatné kroky.
+PDF export, player comments under a marker, side-by-side comparison of two videos.
+The data model and architecture account for them; they are separate next steps.
