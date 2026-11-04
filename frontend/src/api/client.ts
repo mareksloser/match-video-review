@@ -31,6 +31,11 @@ export interface ApiClient {
   me(): Promise<User | null>;
   /** Where accounts, roles and teams are managed (club IdP admin); null in the demo. */
   accountAdminUrl(): Promise<string | null>;
+  /**
+   * The sign-in ended without signing out here (signed out on another device, by an admin,
+   * or the session expired). Returns an unsubscribe function.
+   */
+  onSessionEnded(listener: () => void): () => void;
 
   categories(): Promise<TeamCategory[]>;
   matches(filter?: { categoryId?: number | null }): Promise<Match[]>;

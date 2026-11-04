@@ -19,6 +19,11 @@ export interface AuthSession {
   signOut(): Promise<void>;
   /** Drops the local session only, e.g. when the backend rejects the token. */
   forget(): Promise<void>;
+  /**
+   * Called when a session ends without the user signing out here: the refresh token was revoked
+   * (signed out from another device or by an admin) or expired. Returns an unsubscribe function.
+   */
+  onEnded(listener: () => void): () => void;
 }
 
 export const OIDC_SCOPES = 'openid profile email roles teams offline_access';
@@ -30,6 +35,7 @@ export class OidcAuthSession implements AuthSession {
   private configPromise: Promise<AuthConfig> | null = null;
   private managerPromise: Promise<UserManager> | null = null;
   private renewing: Promise<OidcUser | null> | null = null;
+  private readonly endedListeners = new Set<() => void>();
 
   constructor(
     private readonly loadConfig: () => Promise<AuthConfig>,
@@ -50,15 +56,20 @@ export class OidcAuthSession implements AuthSession {
     if (!user) return null;
     if (!user.expired) return user.access_token;
     if (!user.refresh_token) {
-      await manager.removeUser();
+      await this.end(manager);
       return null;
     }
     try {
       return (await this.renew(manager))?.access_token ?? null;
     } catch {
-      await manager.removeUser(); // refresh token expired or revoked: signed out
+      await this.end(manager); // refresh token expired or revoked: signed out
       return null;
     }
+  }
+
+  onEnded(listener: () => void): () => void {
+    this.endedListeners.add(listener);
+    return () => this.endedListeners.delete(listener);
   }
 
   async signIn(returnTo?: string): Promise<void> {
@@ -84,6 +95,11 @@ export class OidcAuthSession implements AuthSession {
 
   async forget(): Promise<void> {
     await (await this.manager()).removeUser();
+  }
+
+  private async end(manager: UserManager): Promise<void> {
+    await manager.removeUser();
+    this.endedListeners.forEach((listener) => listener());
   }
 
   /** Several API calls may hit an expired token at once; they share one refresh. */

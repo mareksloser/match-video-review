@@ -11,7 +11,24 @@ export class HttpApiClient implements ApiClient {
     private readonly fetchImpl: typeof fetch = (...a) => fetch(...a),
   ) {}
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  /** The backend rejected a token we sent: the session is over (e.g. signed out elsewhere). */
+  private async sessionRejected(): Promise<void> {
+    await this.auth.forget();
+    this.endedListeners.forEach((listener) => listener());
+  }
+
+  private readonly endedListeners = new Set<() => void>();
+
+  onSessionEnded(listener: () => void): () => void {
+    this.endedListeners.add(listener);
+    const unsubscribe = this.auth.onEnded(listener);
+    return () => {
+      this.endedListeners.delete(listener);
+      unsubscribe();
+    };
+  }
+
+  private async request<T>(method: string, path: string, body?: unknown, { endSessionOn401 = true } = {}): Promise<T> {
     const token = await this.auth.accessToken();
     const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
       method,
@@ -24,6 +41,7 @@ export class HttpApiClient implements ApiClient {
     });
     if (res.status === 204) return undefined as T;
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && token && endSessionOn401) await this.sessionRejected();
     if (!res.ok) throw new ApiError(data.error ?? `HTTP ${res.status}`, res.status, data.fields ?? {});
     return data as T;
   }
@@ -35,7 +53,8 @@ export class HttpApiClient implements ApiClient {
   async completeSignIn() {
     const returnTo = await this.auth.completeSignIn();
     try {
-      const { user } = await this.request<{ user: User }>('POST', '/auth/login');
+      // No session-ended redirect here: a config problem would bounce between the app and the IdP forever.
+      const { user } = await this.request<{ user: User }>('POST', '/auth/login', undefined, { endSessionOn401: false });
       return { user, returnTo };
     } catch (e) {
       // 401 = the backend doesn't accept the token (wrong issuer/client config): don't keep it.
@@ -52,10 +71,7 @@ export class HttpApiClient implements ApiClient {
     try {
       return await this.request<User>('GET', '/auth/me');
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        await this.auth.forget();
-        return null;
-      }
+      if (e instanceof ApiError && e.status === 401) return null; // request() already ended the session
       throw e; // 403 (no MVR role) is shown to the user
     }
   }
@@ -98,6 +114,7 @@ export class HttpApiClient implements ApiClient {
       body,
     });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && token) await this.sessionRejected();
     if (!res.ok) throw new ApiError(data.error ?? `HTTP ${res.status}`, res.status, data.fields ?? {});
     return data as { url: string };
   }

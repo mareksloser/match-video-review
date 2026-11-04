@@ -124,6 +124,9 @@ export class DemoApiClient implements ApiClient {
   async accountAdminUrl() {
     return null;
   }
+  onSessionEnded(): () => void {
+    return () => {}; // demo sessions never end on their own
+  }
   async logout() {
     this.setUser(null);
   }
